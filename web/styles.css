@@ -1,0 +1,530 @@
+/* NetCast Audio Pro - Stylesheet */
+:root {
+    --primary-color: #2c3e50;
+    --secondary-color: #3498db;
+    --accent-color: #e74c3c;
+    --success-color: #27ae60;
+    --warning-color: #f39c12;
+    --dark-bg: #1a1a1a;
+    --light-bg: #f8f9fa;
+    --text-dark: #2c3e50;
+    --text-light: #ecf0f1;
+    --border-color: #bdc3c7;
+    --led-green: #00ff00;
+    --led-yellow: #ffff00;
+    --led-orange: #ff8000;
+    --led-red: #ff0000;
+    --led-off: #333;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, var(--dark-bg) 0%, #2c3e50 100%);
+    color: var(--text-light);
+    min-height: 100vh;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header Styles */
+.app-header {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.app-logo {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.app-title {
+    font-size: 1.8rem;
+    font-weight: 300;
+    color: var(--text-light);
+    letter-spacing: 1px;
+}
+
+.network-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.ip-display {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.label {
+    font-size: 0.9rem;
+    opacity: 0.8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.value {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--secondary-color);
+}
+
+.port-container {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.port-input {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: var(--text-light);
+    font-size: 1.1rem;
+    width: 100px;
+}
+
+.port-input:focus {
+    outline: none;
+    border-color: var(--secondary-color);
+    box-shadow: 0 0 10px rgba(52, 152, 219, 0.3);
+}
+
+.port-warning {
+    font-size: 0.8rem;
+    color: var(--warning-color);
+    opacity: 0.8;
+}
+
+/* Main Control Panel */
+.control-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+.stream-control {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    padding: 25px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stream-status {
+    margin-bottom: 20px;
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.status-light {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--accent-color);
+    animation: pulse 2s infinite;
+}
+
+.status-light.active {
+    background: var(--success-color);
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+.stream-button {
+    background: linear-gradient(135deg, var(--secondary-color) 0%, #2980b9 100%);
+    border: none;
+    border-radius: 50px;
+    padding: 15px 30px;
+    color: white;
+    font-size: 1.2rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 auto 20px;
+    min-width: 200px;
+    justify-content: center;
+}
+
+.stream-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(52, 152, 219, 0.4);
+}
+
+.stream-button.active {
+    background: linear-gradient(135deg, var(--accent-color) 0%, #c0392b 100%);
+}
+
+.emergency-button {
+    background: linear-gradient(135deg, var(--warning-color) 0%, #e67e22 100%);
+    border: none;
+    border-radius: 25px;
+    padding: 10px 20px;
+    color: white;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 auto;
+}
+
+.emergency-button:hover {
+    transform: scale(1.05);
+}
+
+/* Audio Meter */
+.audio-meter {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 15px;
+    padding: 20px;
+    position: relative;
+}
+
+.meter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.db-value {
+    font-family: 'Courier New', monospace;
+    font-size: 1.1rem;
+    color: var(--secondary-color);
+}
+
+.limiter-bar {
+    display: flex;
+    gap: 2px;
+    height: 40px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 20px;
+    padding: 5px;
+    position: relative;
+    overflow: hidden;
+}
+
+.led-segment {
+    flex: 1;
+    border-radius: 3px;
+    background: var(--led-off);
+    transition: all 0.1s ease;
+    min-width: 4px;
+}
+
+.led-segment.active {
+    box-shadow: 0 0 8px currentColor;
+}
+
+.led-segment.green { background: var(--led-green); color: var(--led-green); }
+.led-segment.yellow { background: var(--led-yellow); color: var(--led-yellow); }
+.led-segment.orange { background: var(--led-orange); color: var(--led-orange); }
+.led-segment.red { background: var(--led-red); color: var(--led-red); }
+
+.threshold-marker {
+    position: absolute;
+    width: 3px;
+    height: 50px;
+    background: white;
+    border-radius: 1.5px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+    transition: left 0.3s ease;
+}
+
+/* Voice Activation */
+.voice-activation {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    padding: 20px;
+}
+
+.activation-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 24px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: var(--secondary-color);
+}
+
+input:checked + .slider:before {
+    transform: translateX(26px);
+}
+
+.threshold-control {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    opacity: 0.5;
+    transition: opacity 0.3s ease;
+}
+
+.threshold-control.active {
+    opacity: 1;
+}
+
+.threshold-slider {
+    flex: 1;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--border-color);
+    outline: none;
+    -webkit-appearance: none;
+}
+
+.threshold-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--secondary-color);
+    cursor: pointer;
+}
+
+.threshold-value {
+    font-family: 'Courier New', monospace;
+    min-width: 60px;
+    text-align: right;
+}
+
+/* Stream Info */
+.stream-info {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    padding: 20px;
+}
+
+.url-display {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.stream-url {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 10px;
+    color: var(--text-light);
+    font-family: 'Courier New', monospace;
+}
+
+.action-button {
+    background: var(--secondary-color);
+    border: none;
+    border-radius: 8px;
+    padding: 10px 15px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.action-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4);
+}
+
+/* Stream Settings */
+.stream-settings {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    padding: 20px;
+}
+
+.setting-group {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.setting-group.beta-feature {
+    background: rgba(241, 196, 15, 0.1);
+    border: 1px solid var(--warning-color);
+    border-radius: 8px;
+    padding: 10px;
+    margin-top: 20px;
+}
+
+.setting-select {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: var(--text-light);
+    min-width: 180px;
+}
+
+.setting-select:focus {
+    outline: none;
+    border-color: var(--secondary-color);
+    background: rgba(0, 0, 0, 0.6);
+}
+
+.setting-select option {
+    background: var(--dark-bg);
+    color: var(--text-light);
+    padding: 8px;
+}
+
+.beta-badge {
+    background: var(--warning-color);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    margin-left: auto;
+}
+
+/* Footer */
+.app-footer {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    padding: 15px;
+    margin-top: 30px;
+}
+
+.connection-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+/* Toast Notifications */
+.toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 25px;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.toast.show {
+    opacity: 1;
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+    .container {
+        padding: 15px;
+    }
+    
+    .network-info {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .url-display {
+        flex-direction: column;
+    }
+    
+    .setting-group {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .connection-info {
+        flex-direction: column;
+        gap: 5px;
+        text-align: center;
+    }
+}

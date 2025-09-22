@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp"
+    android:background="#1a1a1a">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center_horizontal">
+
+        <!-- Evil Header -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="😈 SADISTIC AUDIO STREAMER 😈"
+            android:textSize="20sp"
+            android:textColor="#ff6b6b"
+            android:textStyle="bold"
+            android:layout_marginBottom="24dp" />
+
+        <!-- Status Card -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:background="#2d2d2d"
+            android:padding="16dp"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:id="@+id/statusText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/streaming_status"
+                    android:textColor="#ffffff"
+                    android:textSize="16sp"
+                    android:layout_marginBottom="8dp" />
+
+                <TextView
+                    android:id="@+id/ipAddressText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/local_ip"
+                    android:textColor="#4ecdc4"
+                    android:textSize="14sp"
+                    android:layout_marginBottom="4dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:id="@+id/portText"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/stream_port"
+                        android:textColor="#4ecdc4"
+                        android:textSize="14sp" />
+
+                    <EditText
+                        android:id="@+id/portInput"
+                        android:layout_width="100dp"
+                        android:layout_height="wrap_content"
+                        android:text="42069"
+                        android:textColor="#ffffff"
+                        android:textColorHint="#888888"
+                        android:backgroundTint="#666666"
+                        android:inputType="number"
+                        android:maxLength="5" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Voice Activation Card -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:background="#2d2d2d"
+            android:padding="16dp"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <Switch
+                    android:id="@+id/voiceActivationSwitch"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/voice_activation"
+                    android:textColor="#ffffff"
+                    android:textSize="16sp"
+                    android:layout_marginBottom="8dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/voice_hint"
+                    android:textColor="#ffcc02"
+                    android:textSize="12sp"
+                    android:textStyle="italic"
+                    android:layout_marginBottom="16dp" />
+
+                <!-- dB Scale Visualization -->
+                <LinearLayout
+                    android:id="@+id/dbScaleContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="100dp"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="16dp"
+                    android:background="#1a1a1a"
+                    android:padding="8dp">
+
+                    <!-- This will be populated programmatically with the dB scale -->
+                    <View
+                        android:id="@+id/dbScaleView"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent" />
+                </LinearLayout>
+
+                <!-- Threshold Slider -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/threshold_level"
+                    android:textColor="#ffffff"
+                    android:textSize="14sp"
+                    android:layout_marginBottom="8dp" />
+
+                <SeekBar
+                    android:id="@+id/thresholdSlider"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:max="100"
+                    android:progress="30"
+                    android:progressTint="#ff6b6b"
+                    android:thumbTint="#ff6b6b"
+                    android:layout_marginBottom="8dp" />
+
+                <TextView
+                    android:id="@+id/thresholdValueText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/threshold_setting"
+                    android:textColor="#4ecdc4"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Control Buttons -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="16dp">
+
+            <Button
+                android:id="@+id/startStopButton"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:text="@string/start_streaming"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:backgroundTint="#ff6b6b"
+                android:textColor="#ffffff"
+                android:layout_marginBottom="12dp" />
+
+            <Button
+                android:id="@+id/minimizeButton"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:text="@string/minimize_app"
+                android:textSize="14sp"
+                android:backgroundTint="#666666"
+                android:textColor="#ffffff" />
+        </LinearLayout>
+
+        <!-- Audio Level Indicator -->
+        <TextView
+            android:id="@+id/currentLevelText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/current_level"
+            android:textColor="#4ecdc4"
+            android:textSize="14sp"
+            android:layout_marginTop="16dp" />
+
+    </LinearLayout>
+</ScrollView>

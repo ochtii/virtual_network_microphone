@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base application theme -->
+    <style name="Theme.AudioStreamer" parent="Theme.AppCompat.DayNight">
+        <!-- Customize your theme here -->
+        <item name="colorPrimary">#ff6b6b</item>
+        <item name="colorPrimaryDark">#cc5555</item>
+        <item name="colorAccent">#4ecdc4</item>
+        
+        <item name="android:windowBackground">#1a1a1a</item>
+        <item name="android:textColorPrimary">#ffffff</item>
+        <item name="android:textColorSecondary">#cccccc</item>
+    </style>
+</resources>

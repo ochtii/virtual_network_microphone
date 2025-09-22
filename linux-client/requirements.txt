@@ -1,0 +1,45 @@
+# Raspberry Pi Sound Monitor v2.0 - Dependencies
+
+# FastAPI Core
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+jinja2==3.1.2
+python-multipart==0.0.6
+
+# WebSocket Support
+websockets==12.0
+
+# Data Processing
+numpy==1.24.4
+scipy==1.10.1
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# Audio Processing
+pyaudio==0.2.11
+sounddevice>=0.4.0
+
+# System Monitoring
+psutil>=5.9.0
+
+# Raspberry Pi Hardware (conditional install)
+RPi.GPIO==0.7.1; platform_machine == "aarch64" or platform_machine == "armv7l"
+
+# Logging and Configuration
+structlog==23.2.0
+configparser
+
+# Security (for future authentication features)
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+
+# Development and Testing
+pytest>=6.0.0
+
+# Optional: Advanced Audio Features (uncomment if needed)
+# librosa>=0.8.0
+# matplotlib>=3.5.0
+
+# Optional: Database Support (uncomment if needed)
+# sqlalchemy==2.0.23
+# alembic==1.13.1

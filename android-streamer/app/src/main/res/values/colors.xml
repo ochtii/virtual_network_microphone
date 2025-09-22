@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="design_default_color_primary">#ff6b6b</color>
+    <color name="design_default_color_primary_dark">#cc5555</color>
+    <color name="design_default_color_secondary">#4ecdc4</color>
+    
+    <!-- Evil color scheme -->
+    <color name="evil_red">#ff6b6b</color>
+    <color name="evil_red_dark">#cc5555</color>
+    <color name="evil_cyan">#4ecdc4</color>
+    <color name="evil_cyan_dark">#3ba89f</color>
+    <color name="evil_yellow">#ffcc02</color>
+    <color name="evil_background">#1a1a1a</color>
+    <color name="evil_card_background">#2d2d2d</color>
+    <color name="evil_text_primary">#ffffff</color>
+    <color name="evil_text_secondary">#cccccc</color>
+    <color name="evil_text_hint">#888888</color>
+</resources>

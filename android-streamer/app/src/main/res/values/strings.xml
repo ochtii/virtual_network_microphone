@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">Audio Streamer 😈</string>
+    <string name="start_streaming">Start Evil Stream</string>
+    <string name="stop_streaming">Stop Stream</string>
+    <string name="streaming_status">Status: Ready to cause chaos</string>
+    <string name="local_ip">Local IP: %1$s</string>
+    <string name="stream_port">Port: %1$d</string>
+    <string name="voice_activation">Voice Activation</string>
+    <string name="threshold_level">Threshold Level</string>
+    <string name="voice_hint">Vielleicht hilfts, probieren kannst es.</string>
+    <string name="minimize_app">Minimize (Continue in Background)</string>
+    <string name="service_notification_title">Audio Stream Active</string>
+    <string name="service_notification_text">Broadcasting your voice at %1$s:%2$d</string>
+    <string name="db_scale_label">dB</string>
+    <string name="current_level">Current: %1$.1f dB</string>
+    <string name="threshold_setting">Threshold: %1$.1f dB</string>
+</resources>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Night theme for evil app -->
+    <style name="Theme.AudioStreamer" parent="Theme.AppCompat.DayNight">
+        <item name="colorPrimary">@color/evil_red</item>
+        <item name="colorPrimaryDark">@color/evil_red_dark</item>
+        <item name="colorAccent">@color/evil_cyan</item>
+        
+        <item name="android:windowBackground">@color/evil_background</item>
+        <item name="android:textColorPrimary">@color/evil_text_primary</item>
+        <item name="android:textColorSecondary">@color/evil_text_secondary</item>
+    </style>
+</resources>
