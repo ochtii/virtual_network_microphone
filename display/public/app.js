@@ -203,10 +203,13 @@ function fetchNetworkMetrics() {
 }
 
 // Live Updates
-let updateInterval;
+let updateInterval = null;
 let currentTab = 'system';
 
 function startLiveUpdates() {
+    // Stop any existing interval first
+    stopLiveUpdates();
+    
     // Update immediately
     if (currentTab === 'system') {
         fetchSystemMetrics();
@@ -225,7 +228,7 @@ function startLiveUpdates() {
 }
 
 function stopLiveUpdates() {
-    if (updateInterval) {
+    if (updateInterval !== null) {
         clearInterval(updateInterval);
         updateInterval = null;
     }
