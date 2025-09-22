@@ -43,6 +43,46 @@ document.querySelectorAll('.subtab-button').forEach(btn => {
 document.querySelector('.tab-button[data-tab="tab1"]').click();
 document.querySelector('.subtab-button[data-subtab="system"]').click();
 
+// Dynamische Farbbestimmung für Metriken-Balken
+function getMetricColor(value, type) {
+    const val = parseFloat(value);
+    
+    switch(type) {
+        case 'cpu':
+        case 'ram':
+        case 'disk':
+            // CPU/RAM/Disk: Grün (0-50%) -> Gelb (50-80%) -> Rot (80-100%)
+            if (val <= 50) return '#28a745'; // Grün
+            if (val <= 80) return '#ffc107'; // Gelb
+            return '#dc3545'; // Rot
+            
+        case 'temp':
+            // Temperatur: Blau (0-40°C) -> Grün (40-60°C) -> Gelb (60-80°C) -> Rot (80+°C)
+            if (val <= 40) return '#007bff'; // Blau
+            if (val <= 60) return '#28a745'; // Grün  
+            if (val <= 80) return '#ffc107'; // Gelb
+            return '#dc3545'; // Rot
+            
+        case 'network':
+            // Netzwerk: Grün (niedrig) -> Blau (mittel) -> Lila (hoch)
+            if (val <= 1) return '#28a745';   // Grün für niedrige Werte
+            if (val <= 10) return '#17a2b8';  // Cyan für mittlere Werte
+            return '#6f42c1'; // Lila für hohe Werte
+            
+        default:
+            return '#6c757d'; // Grau als Fallback
+    }
+}
+
+// Funktion zum Setzen der Balkenfarbe und Animation
+function setBarColor(element, value, type) {
+    if (element) {
+        const color = getMetricColor(value, type);
+        element.style.backgroundColor = color;
+        element.style.boxShadow = `0 0 10px ${color}40`; // Leichter Glow-Effekt
+    }
+}
+
 // Fetch Metrics
 function fetchSystemMetrics() {
     const timestamp = new Date().toLocaleTimeString();
@@ -58,7 +98,7 @@ function fetchSystemMetrics() {
                         <span class="metric-label">CPU Auslastung:</span>
                         <div class="metric-bar-container">
                             <div class="metric-bar">
-                                <div class="metric-bar-fill cpu" style="width: ${parseFloat(data.cpu)}%"></div>
+                                <div class="metric-bar-fill cpu" id="cpu-bar" style="width: ${parseFloat(data.cpu)}%"></div>
                             </div>
                             <span class="metric-value">${data.cpu}</span>
                         </div>
@@ -68,7 +108,7 @@ function fetchSystemMetrics() {
                         <span class="metric-label">RAM Auslastung:</span>
                         <div class="metric-bar-container">
                             <div class="metric-bar">
-                                <div class="metric-bar-fill ram" style="width: ${parseFloat(data.ram)}%"></div>
+                                <div class="metric-bar-fill ram" id="ram-bar" style="width: ${parseFloat(data.ram)}%"></div>
                             </div>
                             <span class="metric-value">${data.ram}</span>
                         </div>
@@ -79,7 +119,7 @@ function fetchSystemMetrics() {
                         <span class="metric-label">CPU Temperatur:</span>
                         <div class="metric-bar-container">
                             <div class="metric-bar">
-                                <div class="metric-bar-fill temp" style="width: ${Math.min(parseFloat(data.cpu_temp), 100)}%"></div>
+                                <div class="metric-bar-fill temp" id="temp-bar" style="width: ${Math.min(parseFloat(data.cpu_temp), 100)}%"></div>
                             </div>
                             <span class="metric-value">${data.cpu_temp}°C</span>
                         </div>
@@ -91,7 +131,7 @@ function fetchSystemMetrics() {
                         <span class="metric-label">Festplatte:</span>
                         <div class="metric-bar-container">
                             <div class="metric-bar">
-                                <div class="metric-bar-fill disk" style="width: ${parseFloat(data.disk_usage)}%"></div>
+                                <div class="metric-bar-fill disk" id="disk-bar" style="width: ${parseFloat(data.disk_usage)}%"></div>
                             </div>
                             <span class="metric-value">${data.disk_usage}</span>
                         </div>
@@ -104,6 +144,16 @@ function fetchSystemMetrics() {
                     </div>
                 </div>
             `;
+            
+            // Setze dynamische Farben für alle Balken
+            setBarColor(document.getElementById('cpu-bar'), data.cpu, 'cpu');
+            setBarColor(document.getElementById('ram-bar'), data.ram, 'ram');
+            if (data.cpu_temp) {
+                setBarColor(document.getElementById('temp-bar'), data.cpu_temp, 'temp');
+            }
+            if (data.disk_usage) {
+                setBarColor(document.getElementById('disk-bar'), data.disk_usage, 'disk');
+            }
         })
         .catch(err => {
             document.getElementById('system').innerHTML = '<div class="error">Fehler beim Laden der System-Metriken</div>';
@@ -123,7 +173,7 @@ function fetchNetworkMetrics() {
                         <span class="metric-label">Download Speed:</span>
                         <div class="metric-bar-container">
                             <div class="metric-bar">
-                                <div class="metric-bar-fill download" style="width: ${Math.min((parseFloat(data.download_mbps) || 0) * 10, 100)}%"></div>
+                                <div class="metric-bar-fill download" id="download-bar" style="width: ${Math.min((parseFloat(data.download_mbps) || 0) * 10, 100)}%"></div>
                             </div>
                             <span class="metric-value">${data.download}</span>
                         </div>
@@ -133,7 +183,7 @@ function fetchNetworkMetrics() {
                         <span class="metric-label">Upload Speed:</span>
                         <div class="metric-bar-container">
                             <div class="metric-bar">
-                                <div class="metric-bar-fill upload" style="width: ${Math.min((parseFloat(data.upload_mbps) || 0) * 10, 100)}%"></div>
+                                <div class="metric-bar-fill upload" id="upload-bar" style="width: ${Math.min((parseFloat(data.upload_mbps) || 0) * 10, 100)}%"></div>
                             </div>
                             <span class="metric-value">${data.upload}</span>
                         </div>
@@ -196,6 +246,10 @@ function fetchNetworkMetrics() {
                     ` : ''}
                 </div>
             `;
+            
+            // Setze dynamische Farben für Netzwerk-Balken
+            setBarColor(document.getElementById('download-bar'), data.download_mbps || 0, 'network');
+            setBarColor(document.getElementById('upload-bar'), data.upload_mbps || 0, 'network');
         })
         .catch(err => {
             document.getElementById('network').innerHTML = '<div class="error">Fehler beim Laden der Netzwerk-Metriken</div>';
