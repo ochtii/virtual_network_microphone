@@ -215,6 +215,11 @@ body {
     border-top: 2px solid #e9ecef;
 }
 
+.metric-section.compact {
+    margin-top: 20px;
+    padding-top: 15px;
+}
+
 .metric-section h4 {
     margin: 0 0 15px 0;
     font-size: 22px;
@@ -222,17 +227,41 @@ body {
     font-weight: 600;
 }
 
+.metric-section.compact h4 {
+    margin: 0 0 10px 0;
+    font-size: 20px;
+}
+
+.metric-row {
+    display: flex;
+    gap: 20px;
+}
+
 .metric-item.small {
     padding: 12px 0;
     font-size: 20px;
+}
+
+.metric-item.compact {
+    padding: 8px 0;
+    font-size: 18px;
+    flex: 1;
 }
 
 .metric-item.small .metric-label {
     font-size: 20px;
 }
 
+.metric-item.compact .metric-label {
+    font-size: 18px;
+}
+
 .metric-item.small .metric-value {
     font-size: 24px;
+}
+
+.metric-item.compact .metric-value {
+    font-size: 20px;
 }
 
 .uptime {

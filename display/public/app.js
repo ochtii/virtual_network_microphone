@@ -1,3 +1,7 @@
+// Global variables
+let updateInterval = null;
+let currentTab = 'system';
+
 // Tabs
 document.querySelectorAll('.tab-button').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -166,11 +170,11 @@ function fetchNetworkMetrics() {
         .then(data => {
             document.getElementById('network').innerHTML = `
                 <div class="metric-card">
-                    <h3>Netzwerk Metriken <span class="live-indicator">🔴 LIVE</span></h3>
+                    <h3>Netzwerk <span class="live-indicator">🔴 LIVE</span></h3>
                     <div class="last-update">Letzte Aktualisierung: ${timestamp}</div>
                     
                     <div class="metric-item">
-                        <span class="metric-label">Download Speed:</span>
+                        <span class="metric-label">Download:</span>
                         <div class="metric-bar-container">
                             <div class="metric-bar">
                                 <div class="metric-bar-fill download" id="download-bar" style="width: ${Math.min((parseFloat(data.download_mbps) || 0) * 10, 100)}%"></div>
@@ -180,7 +184,7 @@ function fetchNetworkMetrics() {
                     </div>
                     
                     <div class="metric-item">
-                        <span class="metric-label">Upload Speed:</span>
+                        <span class="metric-label">Upload:</span>
                         <div class="metric-bar-container">
                             <div class="metric-bar">
                                 <div class="metric-bar-fill upload" id="upload-bar" style="width: ${Math.min((parseFloat(data.upload_mbps) || 0) * 10, 100)}%"></div>
@@ -190,57 +194,17 @@ function fetchNetworkMetrics() {
                     </div>
                     
                     ${data.max_download_today || data.max_upload_today ? `
-                    <div class="metric-section">
-                        <h4>Heute Maximum:</h4>
-                        <div class="metric-item small">
-                            <span class="metric-label">Max Down:</span>
-                            <span class="metric-value">${data.max_download_today || 'N/A'}</span>
-                        </div>
-                        <div class="metric-item small">
-                            <span class="metric-label">Max Up:</span>
-                            <span class="metric-value">${data.max_upload_today || 'N/A'}</span>
-                        </div>
-                    </div>
-                    ` : ''}
-                    
-                    ${data.max_download_alltime || data.max_upload_alltime ? `
-                    <div class="metric-section">
-                        <h4>All-Time Maximum:</h4>
-                        <div class="metric-item small">
-                            <span class="metric-label">Max Down:</span>
-                            <span class="metric-value">${data.max_download_alltime || 'N/A'}</span>
-                        </div>
-                        <div class="metric-item small">
-                            <span class="metric-label">Max Up:</span>
-                            <span class="metric-value">${data.max_upload_alltime || 'N/A'}</span>
-                        </div>
-                    </div>
-                    ` : ''}
-                    
-                    ${data.total_download_today || data.total_upload_today ? `
-                    <div class="metric-section">
-                        <h4>Traffic Heute:</h4>
-                        <div class="metric-item small">
-                            <span class="metric-label">Download:</span>
-                            <span class="metric-value">${data.total_download_today || 'N/A'}</span>
-                        </div>
-                        <div class="metric-item small">
-                            <span class="metric-label">Upload:</span>
-                            <span class="metric-value">${data.total_upload_today || 'N/A'}</span>
-                        </div>
-                    </div>
-                    ` : ''}
-                    
-                    ${data.total_download_alltime || data.total_upload_alltime ? `
-                    <div class="metric-section">
-                        <h4>Traffic Gesamt:</h4>
-                        <div class="metric-item small">
-                            <span class="metric-label">Download:</span>
-                            <span class="metric-value">${data.total_download_alltime || 'N/A'}</span>
-                        </div>
-                        <div class="metric-item small">
-                            <span class="metric-label">Upload:</span>
-                            <span class="metric-value">${data.total_upload_alltime || 'N/A'}</span>
+                    <div class="metric-section compact">
+                        <h4>Max Heute:</h4>
+                        <div class="metric-row">
+                            <div class="metric-item compact">
+                                <span class="metric-label">Down:</span>
+                                <span class="metric-value">${data.max_download_today || 'N/A'}</span>
+                            </div>
+                            <div class="metric-item compact">
+                                <span class="metric-label">Up:</span>
+                                <span class="metric-value">${data.max_upload_today || 'N/A'}</span>
+                            </div>
                         </div>
                     </div>
                     ` : ''}
@@ -257,9 +221,6 @@ function fetchNetworkMetrics() {
 }
 
 // Live Updates
-let updateInterval = null;
-let currentTab = 'system';
-
 function startLiveUpdates() {
     // Stop any existing interval first
     stopLiveUpdates();
