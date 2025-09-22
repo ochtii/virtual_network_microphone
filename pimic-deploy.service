@@ -1,0 +1,14 @@
+[Unit]
+Description=Pimic Auto-Deploy Service
+After=network.target
+
+[Service]
+Type=oneshot
+User=ochtii
+WorkingDirectory=/home/ochtii/pimic
+ExecStart=/home/ochtii/pimic/deploy.sh
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
