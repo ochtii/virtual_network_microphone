@@ -1,0 +1,34 @@
+body {
+    font-family: sans-serif;
+    margin: 0;
+    padding: 0;
+    background: #fff;
+    color: #000;
+}
+
+.tabs, .subtabs {
+    display: flex;
+    background: #222;
+}
+
+.tab-button, .subtab-button {
+    flex: 1;
+    padding: 10px;
+    cursor: pointer;
+    color: #fff;
+    background: #333;
+    border: none;
+}
+
+.tab-button.active, .subtab-button.active {
+    background: #555;
+}
+
+.tab-content, .subtab-content {
+    display: none;
+    padding: 20px;
+}
+
+.tab-content.active, .subtab-content.active {
+    display: block;
+}

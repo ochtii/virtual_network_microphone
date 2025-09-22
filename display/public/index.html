@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Display Dashboard</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="tabs">
+        <button class="tab-button" data-tab="tab1">Metrics</button>
+        <button class="tab-button" data-tab="tab2">Settings</button>
+        <button class="tab-button" data-tab="tab3">Platzhalter</button>
+    </div>
+
+    <div id="tab1" class="tab-content">
+        <div class="subtabs">
+            <button class="subtab-button" data-subtab="system">System Metrics</button>
+            <button class="subtab-button" data-subtab="network">Network Metrics</button>
+        </div>
+        <div id="system" class="subtab-content">Loading system metrics...</div>
+        <div id="network" class="subtab-content">Loading network metrics...</div>
+    </div>
+
+    <div id="tab2" class="tab-content">
+        <label>Schriftgröße: <input type="number" id="fontSize" value="14"></label>
+        <label>Theme: 
+            <select id="themeSelect">
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+            </select>
+        </label>
+        <button id="applySettings">Übernehmen</button>
+    </div>
+
+    <div id="tab3" class="tab-content">Platzhalter-Content</div>
+
+<script src="app.js"></script>
+</body>
+</html>
