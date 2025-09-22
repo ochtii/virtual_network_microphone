@@ -4,6 +4,7 @@ body {
     padding: 0;
     background: #fff;
     color: #000;
+    font-size: 24px; /* Viel größere Grundschrift für 5" Display */
 }
 
 .tabs, .subtabs {
@@ -13,11 +14,13 @@ body {
 
 .tab-button, .subtab-button {
     flex: 1;
-    padding: 10px;
+    padding: 25px 15px; /* Deutlich größere Buttons für Touch */
     cursor: pointer;
     color: #fff;
     background: #333;
     border: none;
+    font-size: 22px; /* Größere Schrift für Buttons */
+    font-weight: bold;
 }
 
 .tab-button.active, .subtab-button.active {
@@ -26,9 +29,118 @@ body {
 
 .tab-content, .subtab-content {
     display: none;
-    padding: 20px;
+    padding: 30px; /* Mehr Padding für bessere Sichtbarkeit */
 }
 
 .tab-content.active, .subtab-content.active {
     display: block;
+}
+
+.metric-card {
+    background: #f8f9fa;
+    border: 3px solid #dee2e6; /* Dickere Rahmen */
+    border-radius: 15px; /* Größere Rundungen */
+    padding: 40px; /* Viel mehr Padding */
+    margin: 20px 0; /* Mehr Abstand zwischen Cards */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15); /* Stärkerer Schatten */
+}
+
+.metric-card h3 {
+    margin: 0 0 25px 0; /* Mehr Abstand nach Überschrift */
+    color: #495057;
+    border-bottom: 4px solid #007bff; /* Dickere Linie */
+    padding-bottom: 15px;
+    font-size: 32px; /* Viel größere Überschrift */
+    font-weight: bold;
+}
+
+.metric-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 0; /* Deutlich mehr Padding für bessere Touch-Ziele */
+    border-bottom: 2px solid #e9ecef; /* Dickere Trennlinien */
+}
+
+.metric-item:last-child {
+    border-bottom: none;
+}
+
+.metric-label {
+    font-weight: 600;
+    color: #6c757d;
+    font-size: 26px; /* Größere Label-Schrift */
+}
+
+.metric-value {
+    font-weight: bold;
+    color: #007bff;
+    font-size: 32px; /* Viel größere Werte für bessere Lesbarkeit */
+}
+
+.error {
+    color: #dc3545;
+    font-weight: bold;
+    text-align: center;
+    padding: 30px; /* Größere Padding für Fehlermeldungen */
+    background: #f8d7da;
+    border: 3px solid #f5c6cb; /* Dickere Rahmen */
+    border-radius: 10px; /* Größere Rundungen */
+    font-size: 22px; /* Größere Schrift für Fehlermeldungen */
+}
+
+.live-indicator {
+    font-size: 20px; /* Größerer Live-Indikator */
+    color: #dc3545;
+    font-weight: bold;
+    animation: pulse 1s infinite;
+    margin-left: 15px; /* Mehr Abstand */
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.last-update {
+    font-size: 18px; /* Größere Schrift für Zeitstempel */
+    color: #6c757d;
+    margin-bottom: 20px; /* Mehr Abstand */
+    text-align: right;
+    font-style: italic;
+}
+
+/* Settings-Formular für 5" Display */
+#tab2 label {
+    display: block;
+    margin-bottom: 25px;
+    font-size: 24px;
+    font-weight: bold;
+    color: #495057;
+}
+
+#tab2 input, #tab2 select {
+    width: 200px;
+    height: 50px;
+    font-size: 20px;
+    padding: 10px;
+    margin-left: 15px;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+}
+
+#tab2 button {
+    padding: 20px 40px;
+    font-size: 22px;
+    font-weight: bold;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    margin-top: 20px;
+}
+
+#tab2 button:hover {
+    background: #0056b3;
 }

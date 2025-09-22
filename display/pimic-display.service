@@ -1,0 +1,24 @@
+[Unit]
+Description=Pi Mic Display HTTP Server
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=ochtii
+Group=ochtii
+WorkingDirectory=/home/ochtii/pimic/display
+ExecStart=/usr/bin/python3 /home/ochtii/pimic/display/http_server.py 3000
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/home/ochtii/pimic/display
+
+[Install]
+WantedBy=multi-user.target

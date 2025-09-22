@@ -1,0 +1,79 @@
+#!/bin/bash
+# PM2 Wrapper ohne npm dependencies
+
+PM2_HOME=${PM2_HOME:-$HOME/.pm2}
+export PM2_HOME
+
+case "$1" in
+    start)
+        SCRIPT=$2
+        NAME=${3:-$(basename $SCRIPT .py)}
+        echo "Starting $NAME..."
+        mkdir -p $PM2_HOME
+        nohup python3 $SCRIPT > $PM2_HOME/$NAME.log 2>&1 &
+        echo $! > $PM2_HOME/$NAME.pid
+        echo "[PM2] App [$NAME] launched"
+        ;;
+    stop)
+        NAME=$2
+        if [ -f $PM2_HOME/$NAME.pid ]; then
+            PID=$(cat $PM2_HOME/$NAME.pid)
+            kill $PID 2>/dev/null && echo "[PM2] Stopping app [$NAME]" || echo "[PM2] App [$NAME] not running"
+            rm -f $PM2_HOME/$NAME.pid
+        else
+            echo "[PM2] App [$NAME] not found"
+        fi
+        ;;
+    restart)
+        $0 stop $2
+        sleep 1
+        $0 start $2 $2
+        ;;
+    list|ls)
+        echo "[PM2] Process List:"
+        if [ ! -d $PM2_HOME ]; then
+            echo "No processes running"
+            exit 0
+        fi
+        for pidfile in $PM2_HOME/*.pid; do
+            if [ -f "$pidfile" ]; then
+                NAME=$(basename $pidfile .pid)
+                PID=$(cat $pidfile)
+                if kill -0 $PID 2>/dev/null; then
+                    echo "│ $NAME │ online │ $PID │"
+                else
+                    echo "│ $NAME │ stopped │ - │"
+                    rm -f $pidfile
+                fi
+            fi
+        done
+        ;;
+    logs)
+        NAME=$2
+        if [ -f $PM2_HOME/$NAME.log ]; then
+            tail -f $PM2_HOME/$NAME.log
+        else
+            echo "[PM2] No logs found for [$NAME]"
+        fi
+        ;;
+    monit)
+        watch -n 1 "$0 list"
+        ;;
+    --version)
+        echo "PM2 Wrapper v1.0 (No npm required)"
+        ;;
+    *)
+        echo "PM2 Wrapper - Process Manager without npm dependencies"
+        echo ""
+        echo "Usage: pm2 <command> [options]"
+        echo ""
+        echo "Commands:"
+        echo "  start <script> [name]  Start script"
+        echo "  stop <name>            Stop process"
+        echo "  restart <name>         Restart process"
+        echo "  list                   List processes"
+        echo "  logs <name>            Show logs"
+        echo "  monit                  Live monitoring"
+        echo ""
+        ;;
+esac
