@@ -53,17 +53,54 @@ function fetchSystemMetrics() {
                 <div class="metric-card">
                     <h3>System Metriken <span class="live-indicator">🔴 LIVE</span></h3>
                     <div class="last-update">Letzte Aktualisierung: ${timestamp}</div>
+                    
                     <div class="metric-item">
                         <span class="metric-label">CPU Auslastung:</span>
-                        <span class="metric-value">${data.cpu}</span>
+                        <div class="metric-bar-container">
+                            <div class="metric-bar">
+                                <div class="metric-bar-fill cpu" style="width: ${parseFloat(data.cpu)}%"></div>
+                            </div>
+                            <span class="metric-value">${data.cpu}</span>
+                        </div>
                     </div>
+                    
                     <div class="metric-item">
                         <span class="metric-label">RAM Auslastung:</span>
-                        <span class="metric-value">${data.ram}</span>
+                        <div class="metric-bar-container">
+                            <div class="metric-bar">
+                                <div class="metric-bar-fill ram" style="width: ${parseFloat(data.ram)}%"></div>
+                            </div>
+                            <span class="metric-value">${data.ram}</span>
+                        </div>
                     </div>
+                    
+                    ${data.cpu_temp ? `
+                    <div class="metric-item">
+                        <span class="metric-label">CPU Temperatur:</span>
+                        <div class="metric-bar-container">
+                            <div class="metric-bar">
+                                <div class="metric-bar-fill temp" style="width: ${Math.min(parseFloat(data.cpu_temp), 100)}%"></div>
+                            </div>
+                            <span class="metric-value">${data.cpu_temp}°C</span>
+                        </div>
+                    </div>
+                    ` : ''}
+                    
+                    ${data.disk_usage ? `
+                    <div class="metric-item">
+                        <span class="metric-label">Festplatte:</span>
+                        <div class="metric-bar-container">
+                            <div class="metric-bar">
+                                <div class="metric-bar-fill disk" style="width: ${parseFloat(data.disk_usage)}%"></div>
+                            </div>
+                            <span class="metric-value">${data.disk_usage}</span>
+                        </div>
+                    </div>
+                    ` : ''}
+                    
                     <div class="metric-item">
                         <span class="metric-label">Uptime:</span>
-                        <span class="metric-value">${data.uptime}</span>
+                        <span class="metric-value uptime">${data.uptime}</span>
                     </div>
                 </div>
             `;
@@ -81,14 +118,82 @@ function fetchNetworkMetrics() {
                 <div class="metric-card">
                     <h3>Netzwerk Metriken <span class="live-indicator">🔴 LIVE</span></h3>
                     <div class="last-update">Letzte Aktualisierung: ${timestamp}</div>
+                    
                     <div class="metric-item">
                         <span class="metric-label">Download Speed:</span>
-                        <span class="metric-value">${data.download}</span>
+                        <div class="metric-bar-container">
+                            <div class="metric-bar">
+                                <div class="metric-bar-fill download" style="width: ${Math.min((parseFloat(data.download_mbps) || 0) * 10, 100)}%"></div>
+                            </div>
+                            <span class="metric-value">${data.download}</span>
+                        </div>
                     </div>
+                    
                     <div class="metric-item">
                         <span class="metric-label">Upload Speed:</span>
-                        <span class="metric-value">${data.upload}</span>
+                        <div class="metric-bar-container">
+                            <div class="metric-bar">
+                                <div class="metric-bar-fill upload" style="width: ${Math.min((parseFloat(data.upload_mbps) || 0) * 10, 100)}%"></div>
+                            </div>
+                            <span class="metric-value">${data.upload}</span>
+                        </div>
                     </div>
+                    
+                    ${data.max_download_today || data.max_upload_today ? `
+                    <div class="metric-section">
+                        <h4>Heute Maximum:</h4>
+                        <div class="metric-item small">
+                            <span class="metric-label">Max Down:</span>
+                            <span class="metric-value">${data.max_download_today || 'N/A'}</span>
+                        </div>
+                        <div class="metric-item small">
+                            <span class="metric-label">Max Up:</span>
+                            <span class="metric-value">${data.max_upload_today || 'N/A'}</span>
+                        </div>
+                    </div>
+                    ` : ''}
+                    
+                    ${data.max_download_alltime || data.max_upload_alltime ? `
+                    <div class="metric-section">
+                        <h4>All-Time Maximum:</h4>
+                        <div class="metric-item small">
+                            <span class="metric-label">Max Down:</span>
+                            <span class="metric-value">${data.max_download_alltime || 'N/A'}</span>
+                        </div>
+                        <div class="metric-item small">
+                            <span class="metric-label">Max Up:</span>
+                            <span class="metric-value">${data.max_upload_alltime || 'N/A'}</span>
+                        </div>
+                    </div>
+                    ` : ''}
+                    
+                    ${data.total_download_today || data.total_upload_today ? `
+                    <div class="metric-section">
+                        <h4>Traffic Heute:</h4>
+                        <div class="metric-item small">
+                            <span class="metric-label">Download:</span>
+                            <span class="metric-value">${data.total_download_today || 'N/A'}</span>
+                        </div>
+                        <div class="metric-item small">
+                            <span class="metric-label">Upload:</span>
+                            <span class="metric-value">${data.total_upload_today || 'N/A'}</span>
+                        </div>
+                    </div>
+                    ` : ''}
+                    
+                    ${data.total_download_alltime || data.total_upload_alltime ? `
+                    <div class="metric-section">
+                        <h4>Traffic Gesamt:</h4>
+                        <div class="metric-item small">
+                            <span class="metric-label">Download:</span>
+                            <span class="metric-value">${data.total_download_alltime || 'N/A'}</span>
+                        </div>
+                        <div class="metric-item small">
+                            <span class="metric-label">Upload:</span>
+                            <span class="metric-value">${data.total_upload_alltime || 'N/A'}</span>
+                        </div>
+                    </div>
+                    ` : ''}
                 </div>
             `;
         })
@@ -109,14 +214,14 @@ function startLiveUpdates() {
         fetchNetworkMetrics();
     }
     
-    // Then update every 2 seconds
+    // Then update every 300ms for smooth experience
     updateInterval = setInterval(() => {
         if (currentTab === 'system') {
             fetchSystemMetrics();
         } else if (currentTab === 'network') {
             fetchNetworkMetrics();
         }
-    }, 2000);
+    }, 300);
 }
 
 function stopLiveUpdates() {

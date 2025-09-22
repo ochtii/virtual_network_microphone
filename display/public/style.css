@@ -14,17 +14,20 @@ body {
 
 .tab-button, .subtab-button {
     flex: 1;
-    padding: 25px 15px; /* Deutlich größere Buttons für Touch */
+    padding: 35px 20px; /* Noch größere Buttons für bessere Touch-Bedienung */
     cursor: pointer;
     color: #fff;
     background: #333;
     border: none;
-    font-size: 22px; /* Größere Schrift für Buttons */
+    font-size: 28px; /* Größere Schrift für Buttons */
     font-weight: bold;
+    transition: all 0.3s ease;
 }
 
 .tab-button.active, .subtab-button.active {
     background: #555;
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 
 .tab-content, .subtab-content {
@@ -143,4 +146,95 @@ body {
 
 #tab2 button:hover {
     background: #0056b3;
+}
+
+/* Fortschrittsbalken für Metriken */
+.metric-bar-container {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex: 1;
+    margin-left: 20px;
+}
+
+.metric-bar {
+    flex: 1;
+    height: 25px;
+    background: #e9ecef;
+    border-radius: 15px;
+    overflow: hidden;
+    border: 2px solid #dee2e6;
+    position: relative;
+}
+
+.metric-bar-fill {
+    height: 100%;
+    border-radius: 13px;
+    transition: width 0.3s ease, background-color 0.3s ease;
+    position: relative;
+}
+
+.metric-bar-fill.cpu {
+    background: linear-gradient(90deg, #28a745 0%, #ffc107 50%, #dc3545 100%);
+}
+
+.metric-bar-fill.ram {
+    background: linear-gradient(90deg, #17a2b8 0%, #ffc107 50%, #dc3545 100%);
+}
+
+.metric-bar-fill.temp {
+    background: linear-gradient(90deg, #007bff 0%, #28a745 30%, #ffc107 60%, #dc3545 100%);
+}
+
+.metric-bar-fill.disk {
+    background: linear-gradient(90deg, #6f42c1 0%, #ffc107 70%, #dc3545 100%);
+}
+
+.metric-bar-fill.download {
+    background: linear-gradient(90deg, #28a745 0%, #17a2b8 50%, #007bff 100%);
+}
+
+.metric-bar-fill.upload {
+    background: linear-gradient(90deg, #fd7e14 0%, #dc3545 50%, #6f42c1 100%);
+}
+
+/* Erweiterte Metriken-Darstellung */
+.metric-section {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 2px solid #e9ecef;
+}
+
+.metric-section h4 {
+    margin: 0 0 15px 0;
+    font-size: 22px;
+    color: #6c757d;
+    font-weight: 600;
+}
+
+.metric-item.small {
+    padding: 12px 0;
+    font-size: 20px;
+}
+
+.metric-item.small .metric-label {
+    font-size: 20px;
+}
+
+.metric-item.small .metric-value {
+    font-size: 24px;
+}
+
+.uptime {
+    font-family: 'Courier New', monospace;
+    background: #f8f9fa;
+    padding: 8px 15px;
+    border-radius: 8px;
+    border: 2px solid #dee2e6;
+}
+
+/* Hover-Effekte für bessere Interaktivität */
+.tab-button:hover, .subtab-button:hover {
+    background: #444;
+    transform: scale(1.02);
 }
