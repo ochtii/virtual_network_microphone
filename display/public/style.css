@@ -123,7 +123,7 @@ body.acid-theme::after {
     border: 1px solid transparent;
     border-radius: 3px;
     cursor: pointer;
-    font-size: 10px !important; /* Optimale Lesbarkeit für 5" Display */
+    font-size: 14px !important; /* Gut lesbare Schrift für 5" Display */
     font-weight: bold;
     transition: all 0.3s ease;
     min-width: 40px; /* Kleinere Mindestbreite */
@@ -180,21 +180,21 @@ body.acid-theme::after {
 .dark-theme .nav-item.current {
     background: #0d6efd;
     border-color: #0d6efd;
-    font-size: 10px !important; /* Optimale Lesbarkeit für 5" Display */
+    font-size: 14px !important; /* Gut lesbare Schrift für 5" Display */
 }
 
 .dark-theme .nav-item.adjacent {
     background: #495057;
     color: #adb5bd;
     border-color: #6c757d;
-    font-size: 10px !important; /* Optimale Lesbarkeit für 5" Display */
+    font-size: 14px !important; /* Gut lesbare Schrift für 5" Display */
 }
 
 .dark-theme .nav-item.other {
     background: #343a40;
     color: #6c757d;
     border-color: #495057;
-    font-size: 10px !important; /* Optimale Lesbarkeit für 5" Display */
+    font-size: 14px !important; /* Gut lesbare Schrift für 5" Display */
 }
 
 .menu-section {
@@ -560,8 +560,8 @@ body.acid-theme::after {
     justify-content: center;
 }
 
-/* Text innerhalb der Balken */
-.metric-bar-text {
+/* Text innerhalb der Balken - positioniert relativ zum gesamten Balken */
+.metric-bar .metric-bar-text {
     position: absolute;
     top: 50%;
     left: 50%;
@@ -571,7 +571,6 @@ body.acid-theme::after {
     z-index: 10;
     text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
     white-space: nowrap;
-    width: 100%;
     text-align: center;
     pointer-events: none; /* Verhindert Interferenz mit Hover-Effekten */
 }
