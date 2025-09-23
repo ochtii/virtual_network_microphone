@@ -201,7 +201,7 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
             
             # Neue Online-Checks für aktive Geräte
             metrics['active_services'] = self.get_active_services_count()
-            metrics['network_devices'] = self.get_network_devices_count()
+            metrics['voltage'] = self.get_voltage()
             
         except Exception as e:
             print(f"Error getting system metrics: {e}")
@@ -211,7 +211,7 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
                 'ram': "Error", 
                 'uptime': "Error",
                 'active_services': 0,
-                'network_devices': 0
+                'voltage': "N/A"
             }
         
         return metrics
@@ -256,36 +256,50 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
         
         return 0
     
-    def get_network_devices_count(self):
-        """Zähle erreichbare Netzwerk-Geräte"""
+    def get_voltage(self):
+        """Lese die aktuelle Versorgungsspannung des Raspberry Pi"""
         try:
-            # Versuche ARP-Tabelle zu lesen für aktive Geräte
-            result = subprocess.run(['arp', '-a'], capture_output=True, text=True, timeout=3)
+            # Raspberry Pi: Verwende vcgencmd für Core-Spannung
+            result = subprocess.run(['vcgencmd', 'measure_volts', 'core'], 
+                                  capture_output=True, text=True, timeout=2)
             if result.returncode == 0:
-                lines = result.stdout.strip().split('\n')
-                # Zähle nur Zeilen mit IP-Adressen
-                device_count = 0
-                for line in lines:
-                    if '(' in line and ')' in line and 'incomplete' not in line:
-                        device_count += 1
-                return device_count
+                voltage_str = result.stdout.strip()
+                if 'volt=' in voltage_str:
+                    voltage = float(voltage_str.split('=')[1].replace('V', ''))
+                    return f"{voltage:.2f}V"
+        except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError):
+            pass
+        
+        try:
+            # Alternative: Lese Spannung über hwmon (falls verfügbar)
+            import glob
+            hwmon_paths = glob.glob('/sys/class/hwmon/hwmon*/in*_input')
+            for path in hwmon_paths:
+                try:
+                    with open(path, 'r') as f:
+                        voltage_mv = int(f.read().strip())
+                        voltage_v = voltage_mv / 1000.0
+                        if 2.0 <= voltage_v <= 6.0:  # Plausibilitätsprüfung für Pi-Spannung
+                            return f"{voltage_v:.2f}V"
+                except:
+                    continue
         except:
             pass
         
         try:
-            # Fallback: Netzwerk-Interfaces zählen
-            result = subprocess.run(['ip', 'link', 'show'], capture_output=True, text=True, timeout=3)
-            if result.returncode == 0:
-                lines = result.stdout.strip().split('\n')
-                interface_count = 0
-                for line in lines:
-                    if ':' in line and ('UP' in line or 'LOWER_UP' in line):
-                        interface_count += 1
-                return max(interface_count - 1, 0)  # Minus loopback
+            # Fallback: Verwende vcgencmd für verschiedene Spannungsdomänen
+            for domain in ['core', 'sdram_c', 'sdram_i', 'sdram_p']:
+                result = subprocess.run(['vcgencmd', 'measure_volts', domain], 
+                                      capture_output=True, text=True, timeout=2)
+                if result.returncode == 0:
+                    voltage_str = result.stdout.strip()
+                    if 'volt=' in voltage_str:
+                        voltage = float(voltage_str.split('=')[1].replace('V', ''))
+                        return f"{voltage:.2f}V"
         except:
             pass
         
-        return 0
+        return "N/A"
     
     def handle_network_api(self):
         """Network Metrics API Endpunkt"""

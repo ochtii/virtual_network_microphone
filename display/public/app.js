@@ -468,8 +468,8 @@ function fetchSystemMetrics() {
                                 <span class="metric-value online-check">${data.active_services || 0}</span>
                             </div>
                             <div class="metric-item compact">
-                                <span class="metric-label">Geräte:</span>
-                                <span class="metric-value online-check">${data.network_devices || 0}</span>
+                                <span class="metric-label">Spannung:</span>
+                                <span class="metric-value voltage">${data.voltage || 'N/A'}</span>
                             </div>
                         </div>
                     </div>
