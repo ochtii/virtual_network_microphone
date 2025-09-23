@@ -118,16 +118,18 @@ body.acid-theme::after {
 }
 
 .nav-item {
-    padding: 4px 8px; /* Sehr kompakt */
+    padding: 2px 6px; /* Noch kompakter für 5" Display */
     background: none;
-    border: 1px solid transparent; /* Dünnere Rahmen */
-    border-radius: 4px;
+    border: 1px solid transparent;
+    border-radius: 3px;
     cursor: pointer;
-    font-size: 10px; /* Kleinere Schrift für 5" Display */
+    font-size: 9px; /* Noch kleinere Schrift */
     font-weight: bold;
     transition: all 0.3s ease;
-    min-width: 45px; /* Kleinere Mindestbreite */
+    min-width: 40px; /* Kleinere Mindestbreite */
     text-align: center;
+    max-height: 28px; /* Maximale Höhe begrenzen */
+    line-height: 1.2; /* Kompaktere Zeilenhöhe */
 }
 
 .nav-item.current {
@@ -564,8 +566,11 @@ body.acid-theme::after {
     font-size: 12px;
     font-weight: bold;
     z-index: 10;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
     white-space: nowrap;
+    width: 100%;
+    text-align: center;
+    pointer-events: none; /* Verhindert Interferenz mit Hover-Effekten */
 }
 
 @keyframes barPulse {

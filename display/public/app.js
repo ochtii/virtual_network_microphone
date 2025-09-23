@@ -457,16 +457,21 @@ function fetchSystemMetrics() {
                     </div>
                     ` : ''}
                     
-                    <div class="metric-item compact">
-                        <span class="metric-label">Uptime: <span class="metric-value uptime inline">${data.uptime_hours !== undefined ? data.uptime_hours + 'h ' + data.uptime_minutes + 'm' : data.uptime}</span></span>
-                    </div>
-                    
-                    <div class="metric-item compact">
-                        <span class="metric-label">Aktive Services: <span class="metric-value online-check inline">${data.active_services || 0}</span></span>
-                    </div>
-                    
-                    <div class="metric-item compact">
-                        <span class="metric-label">Netzwerk Geräte: <span class="metric-value online-check inline">${data.network_devices || 0}</span></span>
+                    <div class="metric-section compact">
+                        <div class="metric-row">
+                            <div class="metric-item compact">
+                                <span class="metric-label">Uptime:</span>
+                                <span class="metric-value uptime">${data.uptime_hours !== undefined ? data.uptime_hours + 'h ' + data.uptime_minutes + 'm' : data.uptime}</span>
+                            </div>
+                            <div class="metric-item compact">
+                                <span class="metric-label">Services:</span>
+                                <span class="metric-value online-check">${data.active_services || 0}</span>
+                            </div>
+                            <div class="metric-item compact">
+                                <span class="metric-label">Geräte:</span>
+                                <span class="metric-value online-check">${data.network_devices || 0}</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             `;
