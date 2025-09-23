@@ -92,7 +92,7 @@ body.acid-theme::after {
     top: 0;
     left: 0;
     right: 0;
-    height: 35px; /* Reduziert für 5" Display */
+    height: 45px; /* Vergrößert um 10px für 5" Display */
     background: #333;
     display: flex;
     align-items: center;
@@ -291,7 +291,7 @@ body.acid-theme::after {
 /* Main Content Area */
 .main-content {
     position: fixed;
-    top: 47px; /* Angepasst an neue Header-Höhe */
+    top: 57px; /* Angepasst an neue Header-Höhe (45px + 12px margin) */
     left: 0;
     right: 0;
     bottom: 0;
