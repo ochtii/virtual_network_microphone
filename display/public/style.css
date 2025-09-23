@@ -123,7 +123,7 @@ body.acid-theme::after {
     border: 1px solid transparent;
     border-radius: 3px;
     cursor: pointer;
-    font-size: 4.5px; /* Schriftgröße halbiert */
+    font-size: 6px; /* Optimiert für 5" Display */
     font-weight: bold;
     transition: all 0.3s ease;
     min-width: 40px; /* Kleinere Mindestbreite */
@@ -161,7 +161,7 @@ body.acid-theme::after {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px; /* Kleinere Schrift */
+    font-size: 8px; /* Noch kleinere Schrift für 5" Display */
     font-weight: bold;
     cursor: pointer;
     transition: background 0.3s ease;
