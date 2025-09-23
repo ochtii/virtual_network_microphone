@@ -4,7 +4,309 @@ body {
     padding: 0;
     background: #fff;
     color: #000;
-    font-size: 24px; /* Viel größere Grundschrift für 5" Display */
+    font-size: 14px; /* Kompakte Grundschrift für 5" Display */
+    overflow: hidden; /* Verhindert Scrollbars */
+    height: 100vh;
+}
+
+/* Dark Theme als Standard */
+body.dark-theme {
+    background: #1a1a1a;
+    color: #e0e0e0;
+}
+
+/* 420 Weed Theme */
+body.weed-theme {
+    background: linear-gradient(135deg, #1a4d1a 0%, #0d2818 50%, #1a4d1a 100%);
+    color: #90ee90;
+    animation: weedGlow 3s ease-in-out infinite alternate;
+}
+
+@keyframes weedGlow {
+    0% { filter: brightness(1) hue-rotate(0deg); }
+    100% { filter: brightness(1.1) hue-rotate(10deg); }
+}
+
+body.weed-theme::before {
+    content: "🌿";
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    font-size: 24px;
+    z-index: 1001;
+    animation: float 2s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+}
+
+/* Acid Theme */
+body.acid-theme {
+    background: linear-gradient(45deg, #ff006e, #fb5607, #ffbe0b, #8338ec, #3a86ff);
+    background-size: 400% 400%;
+    color: #ffffff;
+    animation: acidTrip 4s ease-in-out infinite, acidPulse 2s ease-in-out infinite alternate;
+    filter: blur(0px);
+}
+
+@keyframes acidTrip {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+@keyframes acidPulse {
+    0% { 
+        transform: scale(1) rotate(0deg);
+        filter: blur(0px) saturate(1.5);
+    }
+    100% { 
+        transform: scale(1.02) rotate(1deg);
+        filter: blur(0.5px) saturate(2);
+    }
+}
+
+body.acid-theme::after {
+    content: "🌈✨";
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 100px;
+    opacity: 0.1;
+    z-index: -1;
+    animation: acidSpin 6s linear infinite;
+}
+
+@keyframes acidSpin {
+    0% { transform: translate(-50%, -50%) rotate(0deg) scale(1); }
+    50% { transform: translate(-50%, -50%) rotate(180deg) scale(1.2); }
+    100% { transform: translate(-50%, -50%) rotate(360deg) scale(1); }
+}
+
+/* Compact Navigation Bar */
+.nav-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 35px; /* Reduziert für 5" Display */
+    background: #333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 8px; /* Weniger Padding */
+    z-index: 1000;
+    border-bottom: 2px solid #007bff;
+}
+
+.dark-theme .nav-bar {
+    background: #2d2d2d;
+    border-bottom: 2px solid #0d6efd;
+}
+
+/* Horizontale Navigation direkt im Header */
+.horizontal-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px; /* Sehr kompakter Abstand */
+    width: 100%;
+    max-width: 500px; /* Kompakter für 5" Display */
+}
+
+.nav-item {
+    padding: 4px 8px; /* Sehr kompakt */
+    background: none;
+    border: 1px solid transparent; /* Dünnere Rahmen */
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 10px; /* Kleinere Schrift für 5" Display */
+    font-weight: bold;
+    transition: all 0.3s ease;
+    min-width: 45px; /* Kleinere Mindestbreite */
+    text-align: center;
+}
+
+.nav-item.current {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.nav-item.adjacent {
+    background: #e9ecef;
+    color: #495057;
+    border-color: #adb5bd;
+}
+
+.nav-item.other {
+    background: #f8f9fa;
+    color: #6c757d;
+    opacity: 0.6;
+    border-color: #dee2e6;
+}
+
+.nav-arrow-btn {
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px; /* Kleinere Pfeile für 5" Display */
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px; /* Kleinere Schrift */
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.nav-arrow-btn:hover {
+    background: #0056b3;
+}
+
+.nav-arrow-btn:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.dark-theme .nav-item.current {
+    background: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.dark-theme .nav-item.adjacent {
+    background: #495057;
+    color: #adb5bd;
+    border-color: #6c757d;
+}
+
+.dark-theme .nav-item.other {
+    background: #343a40;
+    color: #6c757d;
+    border-color: #495057;
+}
+
+.menu-section {
+    margin-bottom: 8px;
+}
+
+.menu-section h4 {
+    margin: 0 0 4px 0;
+    font-size: 11px;
+    color: #6c757d;
+    text-transform: uppercase;
+}
+
+.dark-theme .menu-section h4 {
+    color: #adb5bd;
+}
+
+.menu-item {
+    display: block;
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 6px 8px;
+    margin: 2px 0;
+    text-align: left;
+    cursor: pointer;
+    font-size: 12px;
+    border-radius: 3px;
+    transition: background 0.2s ease;
+}
+
+.menu-item:hover {
+    background: #e9ecef;
+}
+
+.dark-theme .menu-item {
+    color: #e0e0e0;
+}
+
+.dark-theme .menu-item:hover {
+    background: #495057;
+}
+
+.menu-item.active {
+    background: #007bff;
+    color: white;
+}
+
+.dark-theme .menu-item.active {
+    background: #0d6efd;
+}
+
+/* Touch Navigation Arrows */
+.nav-arrow {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 50px;
+    height: 80px;
+    background: rgba(0, 123, 255, 0.8);
+    color: white;
+    border: none;
+    font-size: 32px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 998;
+    transition: all 0.3s ease;
+    border-radius: 0;
+}
+
+.dark-theme .nav-arrow {
+    background: rgba(13, 110, 253, 0.8);
+}
+
+.nav-arrow-left {
+    left: 0;
+    border-radius: 0 10px 10px 0;
+}
+
+.nav-arrow-right {
+    right: 0;
+    border-radius: 10px 0 0 10px;
+}
+
+.nav-arrow:hover {
+    background: rgba(0, 123, 255, 1);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.dark-theme .nav-arrow:hover {
+    background: rgba(13, 110, 253, 1);
+}
+
+/* Main Content Area */
+.main-content {
+    position: fixed;
+    top: 47px; /* Angepasst an neue Header-Höhe */
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow-y: auto;
+    padding: 15px;
+    padding-left: 65px; /* Platz für linken Pfeil */
+    padding-right: 65px; /* Platz für rechten Pfeil */
+}
+
+/* View Content */
+.view-content {
+    display: none;
+    height: 100%;
+}
+
+.view-content.active {
+    display: block;
 }
 
 .tabs, .subtabs {
@@ -14,12 +316,12 @@ body {
 
 .tab-button, .subtab-button {
     flex: 1;
-    padding: 35px 20px; /* Noch größere Buttons für bessere Touch-Bedienung */
+    padding: 15px 10px; /* Kompakte Buttons für Touch-Bedienung */
     cursor: pointer;
     color: #fff;
     background: #333;
     border: none;
-    font-size: 28px; /* Größere Schrift für Buttons */
+    font-size: 16px; /* Kompakte Schrift für Buttons */
     font-weight: bold;
     transition: all 0.3s ease;
 }
@@ -32,7 +334,7 @@ body {
 
 .tab-content, .subtab-content {
     display: none;
-    padding: 30px; /* Mehr Padding für bessere Sichtbarkeit */
+    padding: 15px; /* Kompaktes Padding */
 }
 
 .tab-content.active, .subtab-content.active {
@@ -41,28 +343,95 @@ body {
 
 .metric-card {
     background: #f8f9fa;
-    border: 3px solid #dee2e6; /* Dickere Rahmen */
-    border-radius: 15px; /* Größere Rundungen */
-    padding: 40px; /* Viel mehr Padding */
-    margin: 20px 0; /* Mehr Abstand zwischen Cards */
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15); /* Stärkerer Schatten */
+    border: 2px solid #dee2e6; /* Dünner Rahmen */
+    border-radius: 8px; /* Kompakte Rundungen */
+    padding: 20px; /* Kompaktes Padding */
+    margin: 10px 0; /* Weniger Abstand zwischen Cards */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Dezenter Schatten */
+}
+
+.dark-theme .metric-card {
+    background: #2d2d2d;
+    border: 2px solid #495057;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+/* Weed Theme Cards */
+.weed-theme .metric-card {
+    background: rgba(26, 77, 26, 0.8);
+    border: 2px solid #90ee90;
+    box-shadow: 0 4px 8px rgba(144, 238, 144, 0.3);
+    backdrop-filter: blur(5px);
+}
+
+.weed-theme .metric-card h3 {
+    color: #90ee90;
+    border-bottom: 2px solid #90ee90;
+}
+
+/* Acid Theme Cards */
+.acid-theme .metric-card {
+    background: rgba(0, 0, 0, 0.7);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 16px rgba(255, 0, 110, 0.4);
+    backdrop-filter: blur(10px);
+    animation: acidCardGlow 3s ease-in-out infinite alternate;
+}
+
+@keyframes acidCardGlow {
+    0% { 
+        border-color: rgba(255, 0, 110, 0.5);
+        box-shadow: 0 4px 16px rgba(255, 0, 110, 0.4);
+    }
+    33% { 
+        border-color: rgba(251, 86, 7, 0.5);
+        box-shadow: 0 4px 16px rgba(251, 86, 7, 0.4);
+    }
+    66% { 
+        border-color: rgba(131, 56, 236, 0.5);
+        box-shadow: 0 4px 16px rgba(131, 56, 236, 0.4);
+    }
+    100% { 
+        border-color: rgba(58, 134, 255, 0.5);
+        box-shadow: 0 4px 16px rgba(58, 134, 255, 0.4);
+    }
+}
+
+.acid-theme .metric-card h3 {
+    color: #ffffff;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.5);
+    animation: acidTextGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes acidTextGlow {
+    0% { color: #ff006e; text-shadow: 0 0 10px #ff006e; }
+    25% { color: #fb5607; text-shadow: 0 0 10px #fb5607; }
+    50% { color: #ffbe0b; text-shadow: 0 0 10px #ffbe0b; }
+    75% { color: #8338ec; text-shadow: 0 0 10px #8338ec; }
+    100% { color: #3a86ff; text-shadow: 0 0 10px #3a86ff; }
 }
 
 .metric-card h3 {
-    margin: 0 0 25px 0; /* Mehr Abstand nach Überschrift */
+    margin: 0 0 12px 0; /* Kompakter Abstand nach Überschrift */
     color: #495057;
-    border-bottom: 4px solid #007bff; /* Dickere Linie */
-    padding-bottom: 15px;
-    font-size: 32px; /* Viel größere Überschrift */
+    border-bottom: 2px solid #007bff; /* Dünne Linie */
+    padding-bottom: 8px;
+    font-size: 18px; /* Kompakte Überschrift */
     font-weight: bold;
+}
+
+.dark-theme .metric-card h3 {
+    color: #e0e0e0;
+    border-bottom: 2px solid #0d6efd;
 }
 
 .metric-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px 0; /* Deutlich mehr Padding für bessere Touch-Ziele */
-    border-bottom: 2px solid #e9ecef; /* Dickere Trennlinien */
+    padding: 8px 0; /* Kompaktes Padding */
+    border-bottom: 1px solid #e9ecef; /* Dünne Trennlinien */
+    min-height: 32px; /* Einheitliche Mindesthöhe für alle Items */
 }
 
 .metric-item:last-child {
@@ -72,32 +441,38 @@ body {
 .metric-label {
     font-weight: 600;
     color: #6c757d;
-    font-size: 26px; /* Größere Label-Schrift */
+    font-size: 14px; /* Kompakte Label-Schrift */
+    flex: 0 0 140px; /* Feste Breite für einheitliche Ausrichtung */
+}
+
+.dark-theme .metric-label {
+    color: #adb5bd;
 }
 
 .metric-value {
     font-weight: bold;
     color: #007bff;
-    font-size: 32px; /* Viel größere Werte für bessere Lesbarkeit */
+    font-size: 20px; /* Deutlich vergrößert für bessere Lesbarkeit */
+    flex: 0 0 auto;
 }
 
 .error {
     color: #dc3545;
     font-weight: bold;
     text-align: center;
-    padding: 30px; /* Größere Padding für Fehlermeldungen */
+    padding: 15px; /* Kompaktes Padding für Fehlermeldungen */
     background: #f8d7da;
-    border: 3px solid #f5c6cb; /* Dickere Rahmen */
-    border-radius: 10px; /* Größere Rundungen */
-    font-size: 22px; /* Größere Schrift für Fehlermeldungen */
+    border: 2px solid #f5c6cb; /* Dünnere Rahmen */
+    border-radius: 6px; /* Kompakte Rundungen */
+    font-size: 14px; /* Kompakte Schrift für Fehlermeldungen */
 }
 
 .live-indicator {
-    font-size: 20px; /* Größerer Live-Indikator */
+    font-size: 12px; /* Kompakter Live-Indikator */
     color: #dc3545;
     font-weight: bold;
     animation: pulse 1s infinite;
-    margin-left: 15px; /* Mehr Abstand */
+    margin-left: 8px; /* Weniger Abstand */
 }
 
 @keyframes pulse {
@@ -106,9 +481,9 @@ body {
 }
 
 .last-update {
-    font-size: 18px; /* Größere Schrift für Zeitstempel */
+    font-size: 11px; /* Kompakte Schrift für Zeitstempel */
     color: #6c757d;
-    margin-bottom: 20px; /* Mehr Abstand */
+    margin-bottom: 10px; /* Weniger Abstand */
     text-align: right;
     font-style: italic;
 }
@@ -116,32 +491,32 @@ body {
 /* Settings-Formular für 5" Display */
 #tab2 label {
     display: block;
-    margin-bottom: 25px;
-    font-size: 24px;
+    margin-bottom: 12px;
+    font-size: 14px;
     font-weight: bold;
     color: #495057;
 }
 
 #tab2 input, #tab2 select {
-    width: 200px;
-    height: 50px;
-    font-size: 20px;
-    padding: 10px;
-    margin-left: 15px;
-    border: 2px solid #dee2e6;
-    border-radius: 8px;
+    width: 120px;
+    height: 30px;
+    font-size: 12px;
+    padding: 6px;
+    margin-left: 8px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
 }
 
 #tab2 button {
-    padding: 20px 40px;
-    font-size: 22px;
+    padding: 10px 20px;
+    font-size: 13px;
     font-weight: bold;
     background: #007bff;
     color: white;
     border: none;
-    border-radius: 10px;
+    border-radius: 6px;
     cursor: pointer;
-    margin-top: 20px;
+    margin-top: 10px;
 }
 
 #tab2 button:hover {
@@ -152,27 +527,45 @@ body {
 .metric-bar-container {
     display: flex;
     align-items: center;
-    gap: 15px;
-    flex: 1;
-    margin-left: 20px;
+    gap: 8px;
+    flex: 1; /* Nimmt verbleibenden Platz ein */
+    margin-left: 10px;
+    min-width: 0; /* Verhindert Overflow */
 }
 
 .metric-bar {
     flex: 1;
-    height: 25px;
+    height: 24px; /* Vergrößert von 16px auf 24px */
     background: #e9ecef;
-    border-radius: 15px;
+    border-radius: 12px; /* Angepasst für größere Höhe */
     overflow: hidden;
-    border: 2px solid #dee2e6;
+    border: 1px solid #dee2e6;
     position: relative;
+    min-width: 80px;
 }
 
 .metric-bar-fill {
     height: 100%;
-    border-radius: 13px;
+    border-radius: 11px; /* Angepasst für größere Höhe */
     transition: width 0.3s ease, background-color 0.5s ease, box-shadow 0.5s ease;
     position: relative;
     animation: barPulse 2s ease-in-out infinite alternate;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Text innerhalb der Balken */
+.metric-bar-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 12px;
+    font-weight: bold;
+    z-index: 10;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+    white-space: nowrap;
 }
 
 @keyframes barPulse {
@@ -210,70 +603,342 @@ body {
 
 /* Erweiterte Metriken-Darstellung */
 .metric-section {
-    margin-top: 30px;
-    padding-top: 20px;
-    border-top: 2px solid #e9ecef;
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid #e9ecef;
 }
 
 .metric-section.compact {
-    margin-top: 20px;
-    padding-top: 15px;
+    margin-top: 10px;
+    padding-top: 8px;
 }
 
 .metric-section h4 {
-    margin: 0 0 15px 0;
-    font-size: 22px;
+    margin: 0 0 8px 0;
+    font-size: 14px;
     color: #6c757d;
     font-weight: 600;
 }
 
 .metric-section.compact h4 {
-    margin: 0 0 10px 0;
-    font-size: 20px;
+    margin: 0 0 6px 0;
+    font-size: 12px;
 }
 
 .metric-row {
     display: flex;
-    gap: 20px;
+    gap: 10px;
 }
 
 .metric-item.small {
-    padding: 12px 0;
-    font-size: 20px;
+    padding: 6px 0;
+    font-size: 12px;
 }
 
 .metric-item.compact {
-    padding: 8px 0;
-    font-size: 18px;
+    padding: 4px 0;
+    font-size: 11px;
     flex: 1;
 }
 
 .metric-item.small .metric-label {
-    font-size: 20px;
+    font-size: 12px;
 }
 
 .metric-item.compact .metric-label {
-    font-size: 18px;
+    font-size: 11px;
 }
 
 .metric-item.small .metric-value {
-    font-size: 24px;
+    font-size: 18px; /* Vergrößert von 14px */
 }
 
 .metric-item.compact .metric-value {
-    font-size: 20px;
+    font-size: 16px; /* Vergrößert von 12px */
 }
 
 .uptime {
     font-family: 'Courier New', monospace;
     background: #f8f9fa;
-    padding: 8px 15px;
-    border-radius: 8px;
-    border: 2px solid #dee2e6;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+}
+
+.dark-theme .uptime {
+    background: #495057;
+    border-color: #6c757d;
+    color: #e9ecef;
+}
+
+/* Online Check Values - Highlighted Numbers */
+.online-check {
+    font-family: 'Courier New', monospace;
+    background: #28a745;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 13px;
+    box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
+    display: inline-block;
+    min-width: 24px;
+    text-align: center;
+}
+
+.dark-theme .online-check {
+    background: #198754;
+    box-shadow: 0 2px 4px rgba(25, 135, 84, 0.4);
+}
+
+/* Kompakte Metric Items */
+.metric-item.compact {
+    justify-content: flex-start;
+    padding: 4px 0;
+}
+
+.metric-item.compact .metric-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
+
+.metric-value.inline {
+    margin-left: 0;
+    display: inline;
+}
+
+.metric-value.inline.uptime {
+    background: #f8f9fa;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+    font-size: 16px; /* Vergrößert von 12px */
+}
+
+.dark-theme .metric-value.inline.uptime {
+    background: #495057;
+    border-color: #6c757d;
+    color: #e9ecef;
+}
+
+.metric-value.inline.online-check {
+    font-size: 14px; /* Vergrößert von 11px */
+    padding: 2px 8px;
+    min-width: 20px;
 }
 
 /* Hover-Effekte für bessere Interaktivität */
 .tab-button:hover, .subtab-button:hover {
     background: #444;
     transform: scale(1.02);
+}
+
+/* Settings Button Styling */
+.settings-button {
+    padding: 10px 20px;
+    font-size: 13px;
+    font-weight: bold;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-top: 10px;
+    width: 100%;
+}
+
+.settings-button:hover {
+    background: #0056b3;
+}
+
+.dark-theme .settings-button {
+    background: #0d6efd;
+}
+
+.dark-theme .settings-button:hover {
+    background: #0b5ed7;
+}
+
+/* Touch-freundliche Settings */
+.setting-group {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 2px solid #dee2e6;
+}
+
+.dark-theme .setting-group {
+    background: #343a40;
+    border-color: #495057;
+}
+
+.setting-label {
+    display: block;
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #495057;
+}
+
+.dark-theme .setting-label {
+    color: #adb5bd;
+}
+
+/* Touch-freundliche Font Size Controls */
+.font-size-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: center;
+}
+
+.font-size-btn {
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    width: 50px;
+    height: 50px;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.font-size-btn:hover {
+    background: #0056b3;
+}
+
+.font-size-display {
+    background: #e9ecef;
+    border: 2px solid #adb5bd;
+    border-radius: 6px;
+    padding: 10px 20px;
+    font-size: 16px;
+    font-weight: bold;
+    min-width: 60px;
+    text-align: center;
+}
+
+.dark-theme .font-size-display {
+    background: #495057;
+    border-color: #6c757d;
+    color: #e0e0e0;
+}
+
+/* Touch-freundlicher Theme Toggle */
+.theme-toggle {
+    display: flex;
+    background: #e9ecef;
+    border-radius: 8px;
+    padding: 4px;
+    border: 2px solid #adb5bd;
+}
+
+.dark-theme .theme-toggle {
+    background: #495057;
+    border-color: #6c757d;
+}
+
+.theme-option {
+    flex: 1;
+    background: none;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.theme-option.active {
+    background: #007bff;
+    color: white;
+}
+
+.dark-theme .theme-option.active {
+    background: #0d6efd;
+}
+
+/* Weed Theme Buttons */
+.weed-theme .font-size-btn,
+.weed-theme .settings-button,
+.weed-theme .nav-arrow-btn {
+    background: #228B22;
+    border: 2px solid #90ee90;
+    color: #90ee90;
+}
+
+.weed-theme .font-size-btn:hover,
+.weed-theme .settings-button:hover,
+.weed-theme .nav-arrow-btn:hover {
+    background: #90ee90;
+    color: #1a4d1a;
+    box-shadow: 0 0 15px rgba(144, 238, 144, 0.5);
+}
+
+.weed-theme .theme-option.active {
+    background: #228B22;
+    color: #90ee90;
+    border: 2px solid #90ee90;
+}
+
+/* Acid Theme Buttons */
+.acid-theme .font-size-btn,
+.acid-theme .settings-button,
+.acid-theme .nav-arrow-btn {
+    background: rgba(0, 0, 0, 0.7);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    animation: acidButtonGlow 3s ease-in-out infinite alternate;
+}
+
+@keyframes acidButtonGlow {
+    0% { 
+        border-color: #ff006e;
+        box-shadow: 0 0 10px #ff006e;
+        color: #ff006e;
+    }
+    25% { 
+        border-color: #fb5607;
+        box-shadow: 0 0 10px #fb5607;
+        color: #fb5607;
+    }
+    50% { 
+        border-color: #ffbe0b;
+        box-shadow: 0 0 10px #ffbe0b;
+        color: #ffbe0b;
+    }
+    75% { 
+        border-color: #8338ec;
+        box-shadow: 0 0 10px #8338ec;
+        color: #8338ec;
+    }
+    100% { 
+        border-color: #3a86ff;
+        box-shadow: 0 0 10px #3a86ff;
+        color: #3a86ff;
+    }
+}
+
+.acid-theme .theme-option.active {
+    background: rgba(255, 0, 110, 0.3);
+    color: white;
+    border: 2px solid #ff006e;
+    animation: acidActiveButton 2s ease-in-out infinite alternate;
+}
+
+@keyframes acidActiveButton {
+    0% { 
+        background: rgba(255, 0, 110, 0.3);
+        border-color: #ff006e;
+    }
+    100% { 
+        background: rgba(58, 134, 255, 0.3);
+        border-color: #3a86ff;
+    }
 }

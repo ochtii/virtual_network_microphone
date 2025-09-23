@@ -5,34 +5,69 @@
 <title>Display Dashboard</title>
 <link rel="stylesheet" href="style.css">
 </head>
-<body>
-    <div class="tabs">
-        <button class="tab-button" data-tab="tab1">Metrics</button>
-        <button class="tab-button" data-tab="tab2">Settings</button>
-        <button class="tab-button" data-tab="tab3">Platzhalter</button>
-    </div>
-
-    <div id="tab1" class="tab-content">
-        <div class="subtabs">
-            <button class="subtab-button" data-subtab="system">System Metrics</button>
-            <button class="subtab-button" data-subtab="network">Network Metrics</button>
+<body class="dark-theme">
+    <!-- Compact Navigation Bar -->
+    <!-- Compact Navigation Bar mit integrierter Navigation -->
+    <div class="nav-bar">
+        <!-- Horizontale Navigation direkt im Header -->
+        <div class="horizontal-nav" id="horizontalNav">
+            <button class="nav-arrow-btn" id="navPrev">‹</button>
+            <div class="nav-item other" data-view="system">System</div>
+            <div class="nav-item current" data-view="network">Network</div>
+            <div class="nav-item other" data-view="settings">Settings</div>
+            <div class="nav-item other" data-view="placeholder">Platzhalter</div>
+            <button class="nav-arrow-btn" id="navNext">›</button>
         </div>
-        <div id="system" class="subtab-content">Loading system metrics...</div>
-        <div id="network" class="subtab-content">Loading network metrics...</div>
     </div>
 
-    <div id="tab2" class="tab-content">
-        <label>Schriftgröße: <input type="number" id="fontSize" value="14"></label>
-        <label>Theme: 
-            <select id="themeSelect">
-                <option value="light">Light</option>
-                <option value="dark">Dark</option>
-            </select>
-        </label>
-        <button id="applySettings">Übernehmen</button>
-    </div>
+    <!-- Touch Navigation Arrows -->
+    <div class="nav-arrow nav-arrow-left" id="navLeft">‹</div>
+    <div class="nav-arrow nav-arrow-right" id="navRight">›</div>
 
-    <div id="tab3" class="tab-content">Platzhalter-Content</div>
+    <!-- Main Content Area -->
+    <div class="main-content">
+        <div id="system" class="view-content active">Loading system metrics...</div>
+        <div id="network" class="view-content">Loading network metrics...</div>
+        <div id="settings" class="view-content">
+            <div class="metric-card">
+                <h3>Einstellungen</h3>
+                
+                <div class="setting-group">
+                    <span class="setting-label">Schriftgröße:</span>
+                    <div class="font-size-controls">
+                        <button class="font-size-btn" id="fontSizeMinus">−</button>
+                        <div class="font-size-display" id="fontSizeDisplay">14px</div>
+                        <button class="font-size-btn" id="fontSizePlus">+</button>
+                    </div>
+                </div>
+                
+                <div class="setting-group">
+                    <span class="setting-label">Theme:</span>
+                    <div class="theme-toggle" id="themeToggle">
+                        <button class="theme-option" data-theme="light">Light</button>
+                        <button class="theme-option active" data-theme="dark">Dark</button>
+                        <button class="theme-option" data-theme="weed">🌿 420</button>
+                        <button class="theme-option" data-theme="acid">🌈 Acid</button>
+                    </div>
+                </div>
+                
+                <div class="setting-group">
+                    <button id="reloadButton" class="settings-button reload-button">🔄 App & Browser Neustart</button>
+                </div>
+                
+                <button id="applySettings" class="settings-button">Einstellungen Speichern</button>
+            </div>
+        </div>
+        <div id="placeholder" class="view-content">
+            <div class="metric-card">
+                <h3>Platzhalter</h3>
+                <div class="metric-item">
+                    <span class="metric-label">Status:</span>
+                    <span class="metric-value">Bereit für Inhalte</span>
+                </div>
+            </div>
+        </div>
+    </div>
 
 <script src="app.js"></script>
 </body>

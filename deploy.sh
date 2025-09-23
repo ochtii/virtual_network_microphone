@@ -72,6 +72,13 @@ else
     pm2 start ecosystem.config.js
 fi
 
+log "Restarting Chromium on Pi..."
+# Chromium neustarten nach erfolgreichem Deployment
+sudo pkill -f chromium 2>/dev/null || true
+sleep 3
+DISPLAY=:0 chromium-browser --kiosk --disable-infobars --disable-session-crashed-bubble --disable-restore-session-state --no-sandbox http://localhost:3000 > /dev/null 2>&1 &
+log "Chromium restarted successfully"
+
 log "Deployment completed successfully!"
 
 # Cleanup old backups (keep only latest)

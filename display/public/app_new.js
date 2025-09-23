@@ -13,24 +13,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Setup new navigation system
 function setupNavigation() {
-    // Horizontal navigation items (jetzt direkt im Header)
-    document.querySelectorAll('.nav-item').forEach(item => {
+    // Menu toggle
+    const menuToggle = document.getElementById('menuToggle');
+    const menuPanel = document.getElementById('menuPanel');
+    
+    menuToggle.addEventListener('click', () => {
+        menuPanel.classList.toggle('open');
+    });
+    
+    // Menu items
+    document.querySelectorAll('.menu-item').forEach(item => {
         item.addEventListener('click', () => {
             const view = item.dataset.view;
             showView(view);
+            menuPanel.classList.remove('open');
         });
     });
     
-    // Horizontal navigation arrows
-    document.getElementById('navPrev').addEventListener('click', () => {
-        navigateToView('prev');
-    });
-    
-    document.getElementById('navNext').addEventListener('click', () => {
-        navigateToView('next');
-    });
-    
-    // Original side navigation arrows
+    // Navigation arrows
     document.getElementById('navLeft').addEventListener('click', () => {
         navigateToView('prev');
     });
@@ -39,8 +39,19 @@ function setupNavigation() {
         navigateToView('next');
     });
     
-    // Touch-friendly settings handlers
-    setupTouchSettings();
+    // Close menu when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!menuToggle.contains(e.target) && !menuPanel.contains(e.target)) {
+            menuPanel.classList.remove('open');
+        }
+    });
+    
+    // Settings handler
+    document.addEventListener('click', (e) => {
+        if (e.target && e.target.id === 'applySettings') {
+            applySettings();
+        }
+    });
 }
 
 // Navigate between views with arrows
@@ -69,8 +80,22 @@ function showView(viewName) {
         targetView.classList.add('active');
     }
     
-    // Update horizontal navigation
-    updateHorizontalNav();
+    // Update current view indicator
+    const viewNames = {
+        'system': 'System Metrics',
+        'network': 'Network Metrics', 
+        'settings': 'Einstellungen',
+        'placeholder': 'Platzhalter'
+    };
+    document.getElementById('currentView').textContent = viewNames[viewName];
+    
+    // Update menu active states
+    document.querySelectorAll('.menu-item').forEach(item => {
+        item.classList.remove('active');
+        if (item.dataset.view === viewName) {
+            item.classList.add('active');
+        }
+    });
     
     // Handle live updates
     stopLiveUpdates();
@@ -105,199 +130,6 @@ function stopLiveUpdates() {
     if (updateInterval) {
         clearInterval(updateInterval);
         updateInterval = null;
-    }
-}
-
-// Update horizontal navigation display
-function updateHorizontalNav() {
-    const navItems = document.querySelectorAll('.nav-item');
-    const currentIndex = currentViewIndex;
-    
-    navItems.forEach((item, index) => {
-        item.classList.remove('current', 'adjacent', 'other');
-        
-        if (index === currentIndex) {
-            item.classList.add('current');
-        } else if (Math.abs(index - currentIndex) === 1) {
-            item.classList.add('adjacent');
-        } else {
-            item.classList.add('other');
-        }
-    });
-    
-    // Update navigation arrow states
-    const prevBtn = document.getElementById('navPrev');
-    const nextBtn = document.getElementById('navNext');
-    
-    if (prevBtn) prevBtn.disabled = currentIndex === 0;
-    if (nextBtn) nextBtn.disabled = currentIndex === views.length - 1;
-}
-
-// Setup touch-friendly settings
-function setupTouchSettings() {
-    let currentFontSize = 14;
-    
-    // Font size controls
-    const minusBtn = document.getElementById('fontSizeMinus');
-    const plusBtn = document.getElementById('fontSizePlus');
-    
-    if (minusBtn) {
-        minusBtn.addEventListener('click', () => {
-            if (currentFontSize > 10) {
-                currentFontSize -= 1;
-                updateFontSizeDisplay();
-                applyFontSize();
-            }
-        });
-    }
-    
-    if (plusBtn) {
-        plusBtn.addEventListener('click', () => {
-            if (currentFontSize < 35) {
-                currentFontSize += 1;
-                updateFontSizeDisplay();
-                applyFontSize();
-            }
-        });
-    }
-    
-    function updateFontSizeDisplay() {
-        const display = document.getElementById('fontSizeDisplay');
-        if (display) {
-            display.textContent = currentFontSize + 'px';
-        }
-    }
-    
-    function applyFontSize() {
-        // Wende Schriftgröße auf alle relevanten Elemente an
-        document.body.style.fontSize = currentFontSize + 'px';
-        
-        // Zusätzlich für bessere Wirkung
-        const elements = document.querySelectorAll('.metric-card, .metric-label, .metric-value, .nav-item, .menu-panel');
-        elements.forEach(el => {
-            el.style.fontSize = currentFontSize + 'px';
-        });
-    }
-    
-    // Theme toggle
-    document.querySelectorAll('.theme-option').forEach(option => {
-        option.addEventListener('click', () => {
-            document.querySelectorAll('.theme-option').forEach(opt => opt.classList.remove('active'));
-            option.classList.add('active');
-            
-            // Entferne alle Theme-Klassen
-            document.body.classList.remove('light-theme', 'dark-theme', 'weed-theme', 'acid-theme');
-            
-            const theme = option.dataset.theme;
-            switch(theme) {
-                case 'light':
-                    document.body.classList.add('light-theme');
-                    break;
-                case 'dark':
-                    document.body.classList.add('dark-theme');
-                    break;
-                case 'weed':
-                    document.body.classList.add('weed-theme');
-                    break;
-                case 'acid':
-                    document.body.classList.add('acid-theme');
-                    break;
-            }
-        });
-    });
-    
-    // Apply settings button
-    const applyBtn = document.getElementById('applySettings');
-    if (applyBtn) {
-        applyBtn.addEventListener('click', () => {
-            // Save to localStorage
-            localStorage.setItem('fontSize', currentFontSize);
-            const activeTheme = document.querySelector('.theme-option.active');
-            if (activeTheme) {
-                localStorage.setItem('theme', activeTheme.dataset.theme);
-            }
-            
-            // Visual feedback
-            const originalText = applyBtn.textContent;
-            applyBtn.textContent = 'Gespeichert!';
-            applyBtn.style.background = '#28a745';
-            
-            setTimeout(() => {
-                applyBtn.textContent = originalText;
-                applyBtn.style.background = '';
-            }, 1500);
-        });
-    }
-    
-    // Reload button
-    const reloadBtn = document.getElementById('reloadButton');
-    if (reloadBtn) {
-        reloadBtn.addEventListener('click', async () => {
-            // Visual feedback
-            const originalText = reloadBtn.textContent;
-            reloadBtn.textContent = '⏳ Neustart läuft...';
-            reloadBtn.disabled = true;
-            
-            try {
-                const response = await fetch('/reload');
-                if (response.ok) {
-                    reloadBtn.textContent = '✅ Neustart erfolgreich!';
-                    reloadBtn.style.background = '#28a745';
-                    
-                    // Reload page after short delay
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 2000);
-                } else {
-                    throw new Error('Reload failed');
-                }
-            } catch (error) {
-                reloadBtn.textContent = '❌ Fehler beim Neustart';
-                reloadBtn.style.background = '#dc3545';
-                
-                setTimeout(() => {
-                    reloadBtn.textContent = originalText;
-                    reloadBtn.style.background = '';
-                    reloadBtn.disabled = false;
-                }, 3000);
-            }
-        });
-    }
-    
-    // Load saved settings
-    const savedFontSize = localStorage.getItem('fontSize');
-    const savedTheme = localStorage.getItem('theme') || 'dark';
-    
-    if (savedFontSize) {
-        currentFontSize = parseInt(savedFontSize);
-        updateFontSizeDisplay();
-        applyFontSize();
-    }
-    
-    // Set theme
-    document.querySelectorAll('.theme-option').forEach(opt => opt.classList.remove('active'));
-    const themeOption = document.querySelector(`[data-theme="${savedTheme}"]`);
-    if (themeOption) {
-        themeOption.classList.add('active');
-    }
-    
-    // Entferne alle Theme-Klassen und setze das gespeicherte Theme
-    document.body.classList.remove('light-theme', 'dark-theme', 'weed-theme', 'acid-theme');
-    switch(savedTheme) {
-        case 'light':
-            document.body.classList.add('light-theme');
-            break;
-        case 'dark':
-            document.body.classList.add('dark-theme');
-            break;
-        case 'weed':
-            document.body.classList.add('weed-theme');
-            break;
-        case 'acid':
-            document.body.classList.add('acid-theme');
-            break;
-        default:
-            document.body.classList.add('dark-theme');
     }
 }
 
@@ -376,26 +208,7 @@ function setBarColor(element, value, type) {
         const color = getMetricColor(value, type);
         element.style.backgroundColor = color;
         element.style.boxShadow = `0 0 10px ${color}40`;
-        
-        // Text in Balken mit kontrastierender Farbe
-        const textElement = element.querySelector('.metric-bar-text');
-        if (textElement) {
-            // Bestimme Textfarbe basierend auf Hintergrundfarbe
-            const rgb = hexToRgb(color);
-            const brightness = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
-            textElement.style.color = brightness > 128 ? '#000000' : '#ffffff';
-        }
     }
-}
-
-// Helper-Funktion um Hex zu RGB zu konvertieren
-function hexToRgb(hex) {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16)
-    } : null;
 }
 
 // Fetch System Metrics
@@ -413,10 +226,9 @@ function fetchSystemMetrics() {
                         <span class="metric-label">CPU Auslastung:</span>
                         <div class="metric-bar-container">
                             <div class="metric-bar">
-                                <div class="metric-bar-fill cpu" id="cpu-bar" style="width: ${parseFloat(data.cpu)}%">
-                                    <span class="metric-bar-text">${data.cpu}</span>
-                                </div>
+                                <div class="metric-bar-fill cpu" id="cpu-bar" style="width: ${parseFloat(data.cpu)}%"></div>
                             </div>
+                            <span class="metric-value">${data.cpu}</span>
                         </div>
                     </div>
                     
@@ -424,10 +236,9 @@ function fetchSystemMetrics() {
                         <span class="metric-label">RAM Auslastung:</span>
                         <div class="metric-bar-container">
                             <div class="metric-bar">
-                                <div class="metric-bar-fill ram" id="ram-bar" style="width: ${parseFloat(data.ram)}%">
-                                    <span class="metric-bar-text">${data.ram}${data.ram_details ? ` (${data.ram_details})` : ''}</span>
-                                </div>
+                                <div class="metric-bar-fill ram" id="ram-bar" style="width: ${parseFloat(data.ram)}%"></div>
                             </div>
+                            <span class="metric-value">${data.ram}</span>
                         </div>
                     </div>
                     
@@ -436,10 +247,9 @@ function fetchSystemMetrics() {
                         <span class="metric-label">CPU Temperatur:</span>
                         <div class="metric-bar-container">
                             <div class="metric-bar">
-                                <div class="metric-bar-fill temp" id="temp-bar" style="width: ${Math.min(parseFloat(data.cpu_temp), 100)}%">
-                                    <span class="metric-bar-text">${data.cpu_temp}°C</span>
-                                </div>
+                                <div class="metric-bar-fill temp" id="temp-bar" style="width: ${Math.min(parseFloat(data.cpu_temp), 100)}%"></div>
                             </div>
+                            <span class="metric-value">${data.cpu_temp}°C</span>
                         </div>
                     </div>
                     ` : ''}
@@ -449,24 +259,16 @@ function fetchSystemMetrics() {
                         <span class="metric-label">Festplatte:</span>
                         <div class="metric-bar-container">
                             <div class="metric-bar">
-                                <div class="metric-bar-fill disk" id="disk-bar" style="width: ${parseFloat(data.disk_usage)}%">
-                                    <span class="metric-bar-text">${data.disk_usage}${data.disk_details ? ` (${data.disk_details})` : ''}</span>
-                                </div>
+                                <div class="metric-bar-fill disk" id="disk-bar" style="width: ${parseFloat(data.disk_usage)}%"></div>
                             </div>
+                            <span class="metric-value">${data.disk_usage}</span>
                         </div>
                     </div>
                     ` : ''}
                     
-                    <div class="metric-item compact">
-                        <span class="metric-label">Uptime: <span class="metric-value uptime inline">${data.uptime_hours !== undefined ? data.uptime_hours + 'h ' + data.uptime_minutes + 'm' : data.uptime}</span></span>
-                    </div>
-                    
-                    <div class="metric-item compact">
-                        <span class="metric-label">Aktive Services: <span class="metric-value online-check inline">${data.active_services || 0}</span></span>
-                    </div>
-                    
-                    <div class="metric-item compact">
-                        <span class="metric-label">Netzwerk Geräte: <span class="metric-value online-check inline">${data.network_devices || 0}</span></span>
+                    <div class="metric-item">
+                        <span class="metric-label">Uptime:</span>
+                        <span class="metric-value uptime">${data.uptime}</span>
                     </div>
                 </div>
             `;
@@ -501,10 +303,9 @@ function fetchNetworkMetrics() {
                         <span class="metric-label">Download:</span>
                         <div class="metric-bar-container">
                             <div class="metric-bar">
-                                <div class="metric-bar-fill download" id="download-bar" style="width: ${Math.min((parseFloat(data.download_mbps) || 0) * 10, 100)}%">
-                                    <span class="metric-bar-text">${data.download}</span>
-                                </div>
+                                <div class="metric-bar-fill download" id="download-bar" style="width: ${Math.min((parseFloat(data.download_mbps) || 0) * 10, 100)}%"></div>
                             </div>
+                            <span class="metric-value">${data.download}</span>
                         </div>
                     </div>
                     
@@ -512,10 +313,9 @@ function fetchNetworkMetrics() {
                         <span class="metric-label">Upload:</span>
                         <div class="metric-bar-container">
                             <div class="metric-bar">
-                                <div class="metric-bar-fill upload" id="upload-bar" style="width: ${Math.min((parseFloat(data.upload_mbps) || 0) * 10, 100)}%">
-                                    <span class="metric-bar-text">${data.upload}</span>
-                                </div>
+                                <div class="metric-bar-fill upload" id="upload-bar" style="width: ${Math.min((parseFloat(data.upload_mbps) || 0) * 10, 100)}%"></div>
                             </div>
+                            <span class="metric-value">${data.upload}</span>
                         </div>
                     </div>
                     
@@ -579,3 +379,44 @@ function fetchNetworkMetrics() {
             document.getElementById('network').innerHTML = '<div class="error">Fehler beim Laden der Netzwerk-Metriken</div>';
         });
 }
+
+// Settings handler
+function applySettings() {
+    const fontSize = document.getElementById('fontSize').value;
+    const theme = document.getElementById('themeSelect').value;
+    
+    document.body.style.fontSize = fontSize + 'px';
+    
+    if (theme === 'dark') {
+        document.body.classList.add('dark-theme');
+        document.body.classList.remove('light-theme');
+    } else {
+        document.body.classList.add('light-theme');
+        document.body.classList.remove('dark-theme');
+    }
+    
+    // Save settings to localStorage
+    localStorage.setItem('fontSize', fontSize);
+    localStorage.setItem('theme', theme);
+}
+
+// Load saved settings
+function loadSettings() {
+    const savedFontSize = localStorage.getItem('fontSize');
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    
+    if (savedFontSize) {
+        document.getElementById('fontSize').value = savedFontSize;
+        document.body.style.fontSize = savedFontSize + 'px';
+    }
+    
+    document.getElementById('themeSelect').value = savedTheme;
+    if (savedTheme === 'dark') {
+        document.body.classList.add('dark-theme');
+    } else {
+        document.body.classList.add('light-theme');
+    }
+}
+
+// Load settings on page load
+document.addEventListener('DOMContentLoaded', loadSettings);

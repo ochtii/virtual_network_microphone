@@ -31,6 +31,8 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
             self.handle_system_api()
         elif parsed_path.path == '/api/network':
             self.handle_network_api()
+        elif parsed_path.path == '/reload':
+            self.handle_reload_api()
         else:
             # Statische Dateien servieren
             super().do_GET()
@@ -86,11 +88,14 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
                     except:
                         metrics['cpu'] = "N/A"
             
-            # RAM Auslastung - erst mit psutil, dann /proc/meminfo
+            # RAM Auslastung mit GB/GB Format - erst mit psutil, dann /proc/meminfo
             try:
                 import psutil
                 ram = psutil.virtual_memory()
+                used_gb = ram.used / (1024**3)
+                total_gb = ram.total / (1024**3)
                 metrics['ram'] = f"{ram.percent:.1f}%"
+                metrics['ram_details'] = f"{used_gb:.1f}GB/{total_gb:.1f}GB"
             except ImportError:
                 try:
                     with open('/proc/meminfo', 'r') as f:
@@ -103,7 +108,10 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
                         free = meminfo['MemFree'] + meminfo.get('Buffers', 0) + meminfo.get('Cached', 0)
                         used = total - free
                         ram_percent = (used / total) * 100
+                        used_gb = used / (1024**3)
+                        total_gb = total / (1024**3)
                         metrics['ram'] = f"{ram_percent:.1f}%"
+                        metrics['ram_details'] = f"{used_gb:.1f}GB/{total_gb:.1f}GB"
                 except:
                     # Fallback mit free command
                     try:
@@ -113,12 +121,16 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
                             if len(lines) > 1:
                                 parts = lines[1].split()
                                 if len(parts) >= 3:
-                                    total = int(parts[1])
-                                    used = int(parts[2])
-                                    ram_percent = (used / total) * 100
+                                    total_mb = int(parts[1])
+                                    used_mb = int(parts[2])
+                                    ram_percent = (used_mb / total_mb) * 100
+                                    used_gb = used_mb / 1024
+                                    total_gb = total_mb / 1024
                                     metrics['ram'] = f"{ram_percent:.1f}%"
+                                    metrics['ram_details'] = f"{used_gb:.1f}GB/{total_gb:.1f}GB"
                     except:
                         metrics['ram'] = "N/A"
+                        metrics['ram_details'] = "N/A"
             
             # CPU Temperatur (Raspberry Pi spezifisch)
             try:
@@ -139,12 +151,15 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
                 except:
                     pass  # CPU-Temperatur nicht verfügbar
             
-            # Festplattennutzung - erst mit psutil, dann mit df
+            # Festplattennutzung mit GB/GB Format - erst mit psutil, dann mit df
             try:
                 import psutil
                 disk = psutil.disk_usage('/')
                 disk_percent = (disk.used / disk.total) * 100
+                used_gb = disk.used / (1024**3)
+                total_gb = disk.total / (1024**3)
                 metrics['disk_usage'] = f"{disk_percent:.1f}%"
+                metrics['disk_details'] = f"{used_gb:.1f}GB/{total_gb:.1f}GB"
             except ImportError:
                 try:
                     result = subprocess.run(['df', '-h', '/'], 
@@ -155,11 +170,14 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
                             parts = lines[1].split()
                             if len(parts) >= 5:
                                 usage = parts[4].replace('%', '')
+                                used_str = parts[2]
+                                total_str = parts[1]
                                 metrics['disk_usage'] = f"{usage}%"
+                                metrics['disk_details'] = f"{used_str}/{total_str}"
                 except:
                     pass
             
-            # Uptime - reale Systemzeit
+            # Uptime in Stunden und Minuten nebeneinander
             try:
                 with open('/proc/uptime', 'r') as f:
                     uptime_seconds = float(f.read().split()[0])
@@ -169,13 +187,21 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
                     
                     if days > 0:
                         metrics['uptime'] = f"{days}d {hours}h {minutes}m"
-                    elif hours > 0:
-                        metrics['uptime'] = f"{hours}h {minutes}m"
                     else:
-                        metrics['uptime'] = f"{minutes}m"
+                        metrics['uptime'] = f"{hours}h {minutes}m"
+                    
+                    # Separate Werte für bessere Anzeige
+                    metrics['uptime_hours'] = hours + (days * 24) if days > 0 else hours
+                    metrics['uptime_minutes'] = minutes
             except:
                 # Fallback
                 metrics['uptime'] = f"{int(time.time() - start_time)}s"
+                metrics['uptime_hours'] = 0
+                metrics['uptime_minutes'] = 0
+            
+            # Neue Online-Checks für aktive Geräte
+            metrics['active_services'] = self.get_active_services_count()
+            metrics['network_devices'] = self.get_network_devices_count()
             
         except Exception as e:
             print(f"Error getting system metrics: {e}")
@@ -183,10 +209,71 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
             metrics = {
                 'cpu': "Error",
                 'ram': "Error", 
-                'uptime': "Error"
+                'uptime': "Error",
+                'active_services': 0,
+                'network_devices': 0
             }
         
         return metrics
+    
+    def get_active_services_count(self):
+        """Zähle aktive Services/Prozesse"""
+        try:
+            # Versuche systemctl für Service-Status
+            result = subprocess.run(['systemctl', 'list-units', '--type=service', '--state=active', '--no-pager'], 
+                                  capture_output=True, text=True, timeout=3)
+            if result.returncode == 0:
+                lines = result.stdout.strip().split('\n')
+                # Filtere Header und Footer aus
+                active_services = 0
+                for line in lines:
+                    if '.service' in line and 'active' in line:
+                        active_services += 1
+                return active_services
+        except:
+            pass
+        
+        try:
+            # Fallback: Zähle alle laufenden Prozesse
+            result = subprocess.run(['ps', 'aux'], capture_output=True, text=True, timeout=3)
+            if result.returncode == 0:
+                lines = result.stdout.strip().split('\n')
+                return max(len(lines) - 1, 0)  # Minus Header
+        except:
+            pass
+        
+        return 0
+    
+    def get_network_devices_count(self):
+        """Zähle erreichbare Netzwerk-Geräte"""
+        try:
+            # Versuche ARP-Tabelle zu lesen für aktive Geräte
+            result = subprocess.run(['arp', '-a'], capture_output=True, text=True, timeout=3)
+            if result.returncode == 0:
+                lines = result.stdout.strip().split('\n')
+                # Zähle nur Zeilen mit IP-Adressen
+                device_count = 0
+                for line in lines:
+                    if '(' in line and ')' in line and 'incomplete' not in line:
+                        device_count += 1
+                return device_count
+        except:
+            pass
+        
+        try:
+            # Fallback: Netzwerk-Interfaces zählen
+            result = subprocess.run(['ip', 'link', 'show'], capture_output=True, text=True, timeout=3)
+            if result.returncode == 0:
+                lines = result.stdout.strip().split('\n')
+                interface_count = 0
+                for line in lines:
+                    if ':' in line and ('UP' in line or 'LOWER_UP' in line):
+                        interface_count += 1
+                return max(interface_count - 1, 0)  # Minus loopback
+        except:
+            pass
+        
+        return 0
     
     def handle_network_api(self):
         """Network Metrics API Endpunkt"""
@@ -333,6 +420,50 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
                         metrics['total_download_alltime'] = format_bytes(self.__class__._network_stats['total_download_alltime'])
                     if self.__class__._network_stats['total_upload_alltime'] > 0:
                         metrics['total_upload_alltime'] = format_bytes(self.__class__._network_stats['total_upload_alltime'])
+                    
+                    # Lokale IP-Adresse und Verbindungsinfo hinzufügen
+                    try:
+                        # Hostname ermitteln
+                        hostname_result = subprocess.run(['hostname'], capture_output=True, text=True, timeout=5)
+                        if hostname_result.returncode == 0:
+                            metrics['hostname'] = hostname_result.stdout.strip()
+                        
+                        # Lokale IP-Adresse ermitteln
+                        ip_result = subprocess.run(['hostname', '-I'], capture_output=True, text=True, timeout=5)
+                        if ip_result.returncode == 0:
+                            ips = ip_result.stdout.strip().split()
+                            # Erste nicht-loopback IP nehmen
+                            for ip in ips:
+                                if ip != '127.0.0.1' and not ip.startswith('::'):
+                                    metrics['local_ip'] = ip
+                                    break
+                        
+                        # Gateway IP ermitteln
+                        route_result = subprocess.run(['ip', 'route', 'show', 'default'], capture_output=True, text=True, timeout=5)
+                        if route_result.returncode == 0:
+                            route_lines = route_result.stdout.strip().split('\n')
+                            for line in route_lines:
+                                if 'default via' in line:
+                                    parts = line.split()
+                                    if len(parts) >= 3:
+                                        metrics['gateway'] = parts[2]
+                                        break
+                        
+                        # Interface-Info
+                        if_result = subprocess.run(['ip', 'link', 'show'], capture_output=True, text=True, timeout=5)
+                        if if_result.returncode == 0:
+                            active_interfaces = []
+                            for line in if_result.stdout.split('\n'):
+                                if 'state UP' in line or 'LOWER_UP' in line:
+                                    parts = line.split(':')
+                                    if len(parts) >= 2:
+                                        interface_name = parts[1].strip()
+                                        if interface_name != 'lo':
+                                            active_interfaces.append(interface_name)
+                            if active_interfaces:
+                                metrics['active_interfaces'] = ', '.join(active_interfaces)
+                    except Exception as e:
+                        print(f"Error getting network info: {e}")
                         
                 else:
                     # Negative Differenz (Counter Reset) - initialisiere neu
@@ -364,6 +495,37 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
             }
         
         return metrics
+    
+    def handle_reload_api(self):
+        """Reload API Endpunkt - startet Chromium und App neu"""
+        try:
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            
+            # Führe Reload-Skript asynchron aus
+            def execute_reload():
+                try:
+                    # Chromium am Raspberry Pi neustarten
+                    subprocess.run([
+                        'ssh', 'ochtii@pi3',
+                        'sudo pkill -f chromium; sleep 3; '
+                        'DISPLAY=:0 chromium-browser --kiosk --disable-infobars '
+                        '--disable-session-crashed-bubble --disable-restore-session-state '
+                        '--no-sandbox http://localhost:3000 > /dev/null 2>&1 &'
+                    ], timeout=30)
+                except Exception as e:
+                    print(f"Reload error: {e}")
+            
+            # Starte Reload in separatem Thread
+            threading.Thread(target=execute_reload, daemon=True).start()
+            
+            response = json.dumps({"status": "success", "message": "Reload started"}).encode('utf-8')
+            self.wfile.write(response)
+            
+        except Exception as e:
+            self.send_error(500, f"Reload Error: {str(e)}")
     
     def log_message(self, format, *args):
         """Überschreibe Log-Format für sauberere Ausgabe"""
