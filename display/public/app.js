@@ -260,6 +260,54 @@ function fetchNetworkMetrics() {
                         </div>
                     </div>
                     ` : ''}
+                    
+                    ${data.max_download_alltime || data.max_upload_alltime ? `
+                    <div class="metric-section compact">
+                        <h4>Max Gesamt:</h4>
+                        <div class="metric-row">
+                            <div class="metric-item compact">
+                                <span class="metric-label">Down:</span>
+                                <span class="metric-value">${data.max_download_alltime || 'N/A'}</span>
+                            </div>
+                            <div class="metric-item compact">
+                                <span class="metric-label">Up:</span>
+                                <span class="metric-value">${data.max_upload_alltime || 'N/A'}</span>
+                            </div>
+                        </div>
+                    </div>
+                    ` : ''}
+                    
+                    ${data.total_download_today || data.total_upload_today ? `
+                    <div class="metric-section compact">
+                        <h4>Traffic Heute:</h4>
+                        <div class="metric-row">
+                            <div class="metric-item compact">
+                                <span class="metric-label">Down:</span>
+                                <span class="metric-value">${data.total_download_today || 'N/A'}</span>
+                            </div>
+                            <div class="metric-item compact">
+                                <span class="metric-label">Up:</span>
+                                <span class="metric-value">${data.total_upload_today || 'N/A'}</span>
+                            </div>
+                        </div>
+                    </div>
+                    ` : ''}
+                    
+                    ${data.total_download_alltime || data.total_upload_alltime ? `
+                    <div class="metric-section compact">
+                        <h4>Traffic Gesamt:</h4>
+                        <div class="metric-row">
+                            <div class="metric-item compact">
+                                <span class="metric-label">Down:</span>
+                                <span class="metric-value">${data.total_download_alltime || 'N/A'}</span>
+                            </div>
+                            <div class="metric-item compact">
+                                <span class="metric-label">Up:</span>
+                                <span class="metric-value">${data.total_upload_alltime || 'N/A'}</span>
+                            </div>
+                        </div>
+                    </div>
+                    ` : ''}
                 </div>
             `;
             
