@@ -92,7 +92,7 @@ body.acid-theme::after {
     top: 0;
     left: 0;
     right: 0;
-    height: 45px; /* Vergrößert um 10px für 5" Display */
+    height: 55px; /* Nochmals um 10px vergrößert für 5" Display */
     background: #333;
     display: flex;
     align-items: center;
@@ -123,7 +123,7 @@ body.acid-theme::after {
     border: 1px solid transparent;
     border-radius: 3px;
     cursor: pointer;
-    font-size: 9px; /* Noch kleinere Schrift */
+    font-size: 4.5px; /* Schriftgröße halbiert */
     font-weight: bold;
     transition: all 0.3s ease;
     min-width: 40px; /* Kleinere Mindestbreite */
@@ -291,7 +291,7 @@ body.acid-theme::after {
 /* Main Content Area */
 .main-content {
     position: fixed;
-    top: 57px; /* Angepasst an neue Header-Höhe (45px + 12px margin) */
+    top: 67px; /* Angepasst an neue Header-Höhe (55px + 12px margin) */
     left: 0;
     right: 0;
     bottom: 0;
