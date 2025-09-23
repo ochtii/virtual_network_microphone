@@ -217,9 +217,21 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
         return metrics
     
     def get_active_services_count(self):
-        """Zähle aktive Services/Prozesse"""
+        """Zähle aktive PM2-Prozesse"""
         try:
-            # Versuche systemctl für Service-Status
+            # PM2-Prozesse über PM2-CLI zählen
+            pm2_cmd = [os.path.expanduser('~/.npm-global/bin/pm2'), 'jlist']
+            result = subprocess.run(pm2_cmd, capture_output=True, text=True, timeout=5)
+            if result.returncode == 0:
+                import json
+                processes = json.loads(result.stdout)
+                active_count = sum(1 for proc in processes if proc.get('pm2_env', {}).get('status') == 'online')
+                return active_count
+        except Exception as e:
+            pass
+        
+        try:
+            # Fallback: Versuche systemctl für Service-Status
             result = subprocess.run(['systemctl', 'list-units', '--type=service', '--state=active', '--no-pager'], 
                                   capture_output=True, text=True, timeout=3)
             if result.returncode == 0:

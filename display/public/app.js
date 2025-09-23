@@ -464,7 +464,7 @@ function fetchSystemMetrics() {
                                 <span class="metric-value uptime">${data.uptime_hours !== undefined ? data.uptime_hours + 'h ' + data.uptime_minutes + 'm' : data.uptime}</span>
                             </div>
                             <div class="metric-item compact">
-                                <span class="metric-label">Services:</span>
+                                <span class="metric-label">PM2 Services:</span>
                                 <span class="metric-value online-check">${data.active_services || 0}</span>
                             </div>
                             <div class="metric-item compact">
