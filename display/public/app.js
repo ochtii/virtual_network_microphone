@@ -47,7 +47,32 @@ document.querySelectorAll('.subtab-button').forEach(btn => {
 document.querySelector('.tab-button[data-tab="tab1"]').click();
 document.querySelector('.subtab-button[data-subtab="system"]').click();
 
-// Dynamische Farbbestimmung für Metriken-Balken
+// Hilfsfunktion für Farb-Interpolation
+function interpolateColor(color1, color2, factor) {
+    // Konvertiere Hex zu RGB
+    const hex2rgb = (hex) => {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return [r, g, b];
+    };
+    
+    // Konvertiere RGB zu Hex
+    const rgb2hex = (r, g, b) => {
+        return "#" + ((1 << 24) + (Math.round(r) << 16) + (Math.round(g) << 8) + Math.round(b)).toString(16).slice(1);
+    };
+    
+    const [r1, g1, b1] = hex2rgb(color1);
+    const [r2, g2, b2] = hex2rgb(color2);
+    
+    const r = r1 + (r2 - r1) * factor;
+    const g = g1 + (g2 - g1) * factor;
+    const b = b1 + (b2 - b1) * factor;
+    
+    return rgb2hex(r, g, b);
+}
+
+// Dynamische Farbbestimmung für Metriken-Balken (fließend)
 function getMetricColor(value, type) {
     const val = parseFloat(value);
     
@@ -55,23 +80,50 @@ function getMetricColor(value, type) {
         case 'cpu':
         case 'ram':
         case 'disk':
-            // CPU/RAM/Disk: Grün (0-50%) -> Gelb (50-80%) -> Rot (80-100%)
-            if (val <= 50) return '#28a745'; // Grün
-            if (val <= 80) return '#ffc107'; // Gelb
-            return '#dc3545'; // Rot
+            // CPU/RAM/Disk: Fließender Übergang Grün -> Gelb -> Rot
+            if (val <= 50) {
+                // 0-50%: Grün -> Gelb
+                const factor = val / 50;
+                return interpolateColor('#28a745', '#ffc107', factor);
+            } else {
+                // 50-100%: Gelb -> Rot
+                const factor = (val - 50) / 50;
+                return interpolateColor('#ffc107', '#dc3545', factor);
+            }
             
         case 'temp':
-            // Temperatur: Blau (0-40°C) -> Grün (40-60°C) -> Gelb (60-80°C) -> Rot (80+°C)
-            if (val <= 40) return '#007bff'; // Blau
-            if (val <= 60) return '#28a745'; // Grün  
-            if (val <= 80) return '#ffc107'; // Gelb
-            return '#dc3545'; // Rot
+            // Temperatur: Fließender Übergang Blau -> Grün -> Gelb -> Rot
+            if (val <= 40) {
+                // 0-40°C: Blau -> Grün
+                const factor = val / 40;
+                return interpolateColor('#007bff', '#28a745', factor);
+            } else if (val <= 60) {
+                // 40-60°C: Grün -> Gelb
+                const factor = (val - 40) / 20;
+                return interpolateColor('#28a745', '#ffc107', factor);
+            } else if (val <= 80) {
+                // 60-80°C: Gelb -> Rot
+                const factor = (val - 60) / 20;
+                return interpolateColor('#ffc107', '#dc3545', factor);
+            } else {
+                // 80+°C: Rot bleiben
+                return '#dc3545';
+            }
             
         case 'network':
-            // Netzwerk: Grün (niedrig) -> Blau (mittel) -> Lila (hoch)
-            if (val <= 1) return '#28a745';   // Grün für niedrige Werte
-            if (val <= 10) return '#17a2b8';  // Cyan für mittlere Werte
-            return '#6f42c1'; // Lila für hohe Werte
+            // Netzwerk: Fließender Übergang Grün -> Cyan -> Lila
+            if (val <= 1) {
+                // 0-1 Mbps: Grün -> Cyan
+                const factor = val / 1;
+                return interpolateColor('#28a745', '#17a2b8', factor);
+            } else if (val <= 10) {
+                // 1-10 Mbps: Cyan -> Lila
+                const factor = (val - 1) / 9;
+                return interpolateColor('#17a2b8', '#6f42c1', factor);
+            } else {
+                // 10+ Mbps: Lila bleiben
+                return '#6f42c1';
+            }
             
         default:
             return '#6c757d'; // Grau als Fallback
