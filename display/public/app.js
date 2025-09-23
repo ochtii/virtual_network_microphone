@@ -239,27 +239,53 @@ function setupTouchSettings() {
             reloadBtn.disabled = true;
             
             try {
-                const response = await fetch('/reload');
+                // Kurzes Timeout für fetch, da der Server während Reload nicht antwortet
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3000);
+                
+                const response = await fetch('/reload', {
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
                 if (response.ok) {
-                    reloadBtn.textContent = '✅ Neustart erfolgreich!';
+                    reloadBtn.textContent = '✅ Neustart gestartet!';
                     reloadBtn.style.background = '#28a745';
                     
-                    // Reload page after short delay
+                    // Warte länger auf Chromium-Neustart
                     setTimeout(() => {
-                        window.location.reload();
+                        reloadBtn.textContent = '🔄 Browser startet neu...';
+                        reloadBtn.style.background = '#ffc107';
+                        
+                        // Versuche nach weiteren 3 Sekunden zu reloaden
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 3000);
                     }, 2000);
                 } else {
-                    throw new Error('Reload failed');
+                    throw new Error('Reload request failed');
                 }
             } catch (error) {
-                reloadBtn.textContent = '❌ Fehler beim Neustart';
-                reloadBtn.style.background = '#dc3545';
-                
-                setTimeout(() => {
-                    reloadBtn.textContent = originalText;
-                    reloadBtn.style.background = '';
-                    reloadBtn.disabled = false;
-                }, 3000);
+                // Auch bei Timeout als Erfolg werten, da Server möglicherweise schon neustartet
+                if (error.name === 'AbortError') {
+                    reloadBtn.textContent = '🔄 Neustart läuft...';
+                    reloadBtn.style.background = '#ffc107';
+                    
+                    // Warte auf Chromium-Neustart
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 5000);
+                } else {
+                    reloadBtn.textContent = '❌ Fehler beim Neustart';
+                    reloadBtn.style.background = '#dc3545';
+                    
+                    setTimeout(() => {
+                        reloadBtn.textContent = originalText;
+                        reloadBtn.style.background = '';
+                        reloadBtn.disabled = false;
+                    }, 3000);
+                }
             }
         });
     }
