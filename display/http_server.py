@@ -507,14 +507,17 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
             # Führe Reload-Skript asynchron aus
             def execute_reload():
                 try:
-                    # Chromium am Raspberry Pi neustarten
+                    # Chromium neustarten (direkt auf dem Pi)
                     subprocess.run([
-                        'ssh', 'ochtii@pi3',
-                        'sudo pkill -f chromium; sleep 3; '
+                        'sudo', 'pkill', '-f', 'chromium'
+                    ], timeout=10)
+                    time.sleep(3)
+                    subprocess.run([
+                        'sh', '-c',
                         'DISPLAY=:0 chromium-browser --kiosk --disable-infobars '
                         '--disable-session-crashed-bubble --disable-restore-session-state '
                         '--no-sandbox http://localhost:3000 > /dev/null 2>&1 &'
-                    ], timeout=30)
+                    ], timeout=10)
                 except Exception as e:
                     print(f"Reload error: {e}")
             
