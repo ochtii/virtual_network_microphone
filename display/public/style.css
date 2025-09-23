@@ -123,7 +123,7 @@ body.acid-theme::after {
     border: 1px solid transparent;
     border-radius: 3px;
     cursor: pointer;
-    font-size: 8px !important; /* Erzwinge kleine Schrift für 5" Display */
+    font-size: 10px !important; /* Optimale Lesbarkeit für 5" Display */
     font-weight: bold;
     transition: all 0.3s ease;
     min-width: 40px; /* Kleinere Mindestbreite */
@@ -180,21 +180,21 @@ body.acid-theme::after {
 .dark-theme .nav-item.current {
     background: #0d6efd;
     border-color: #0d6efd;
-    font-size: 8px !important; /* Erzwinge kleine Schrift für 5" Display */
+    font-size: 10px !important; /* Optimale Lesbarkeit für 5" Display */
 }
 
 .dark-theme .nav-item.adjacent {
     background: #495057;
     color: #adb5bd;
     border-color: #6c757d;
-    font-size: 8px !important; /* Erzwinge kleine Schrift für 5" Display */
+    font-size: 10px !important; /* Optimale Lesbarkeit für 5" Display */
 }
 
 .dark-theme .nav-item.other {
     background: #343a40;
     color: #6c757d;
     border-color: #495057;
-    font-size: 8px !important; /* Erzwinge kleine Schrift für 5" Display */
+    font-size: 10px !important; /* Optimale Lesbarkeit für 5" Display */
 }
 
 .menu-section {
