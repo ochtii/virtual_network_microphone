@@ -1381,6 +1381,7 @@ class HTTPHandler(SimpleHTTPRequestHandler):
                 return
             
             post_data = self.rfile.read(content_length)
+            logger.info(f"RTP start POST data received: {post_data}")
             data = json.loads(post_data.decode('utf-8'))
             
             client_ip = data.get('client_ip')
