@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PIMIC Audio Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .server-info {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+        
+        .info-item {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+        
+        .status-online { color: #4ECDC4; }
+        .status-offline { color: #FF6B6B; }
+        .status-warning { color: #FFE66D; }
+        
+        .controls {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            margin: 0 10px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .streams-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stream-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .stream-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+        }
+        
+        .stream-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .client-info {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .client-ip {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #4ECDC4;
+        }
+        
+        .client-details {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+        
+        .stream-status {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        
+        .status-active {
+            background: rgba(76, 204, 196, 0.3);
+            color: #4ECDC4;
+        }
+        
+        .status-inactive {
+            background: rgba(255, 107, 107, 0.3);
+            color: #FF6B6B;
+        }
+        
+        .audio-controls {
+            margin: 15px 0;
+        }
+        
+        .control-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .control-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex: 1;
+            min-width: 80px;
+        }
+        
+        .control-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .control-btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .audio-player {
+            width: 100%;
+            margin: 10px 0;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+        
+        .stream-info {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.85em;
+            margin-top: 10px;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 3px 0;
+        }
+        
+        .no-streams {
+            text-align: center;
+            padding: 60px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .no-streams h2 {
+            color: #FFE66D;
+            margin-bottom: 15px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2em;
+        }
+        
+        .error {
+            background: rgba(255, 107, 107, 0.3);
+            border: 1px solid #FF6B6B;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+        }
+        
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        
+        .volume-slider {
+            flex: 1;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.3);
+            outline: none;
+            cursor: pointer;
+        }
+        
+        @media (max-width: 768px) {
+            .streams-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .server-info {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .control-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎵 PIMIC Audio Dashboard</h1>
+        <div class="server-info">
+            <div class="info-item">
+                <span>Server:</span> <span id="serverStatus" class="status-offline">Prüfen...</span>
+            </div>
+            <div class="info-item">
+                <span>Aktive Streams:</span> <span id="streamCount">-</span>
+            </div>
+            <div class="info-item">
+                <span>Verbindungen:</span> <span id="connectionCount">-</span>
+            </div>
+            <div class="info-item">
+                <span>Letztes Update:</span> <span id="lastUpdate">-</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="controls">
+        <button class="btn" onclick="refreshStreams()">🔄 Aktualisieren</button>
+        <button class="btn" onclick="toggleAutoRefresh()" id="autoRefreshBtn">⏸️ Auto-Refresh</button>
+        <button class="btn" onclick="stopAllStreams()">⏹️ Alle stoppen</button>
+    </div>
+    
+    <div id="streamsContainer" class="streams-container">
+        <div class="loading">🔄 Lade Streams...</div>
+    </div>
+
+    <script>
+        let autoRefreshInterval = null;
+        let isAutoRefresh = true;
+        let streamPlayers = new Map();
+        
+        const SERVER_BASE = 'https://192.168.188.90:6969';
+        
+        // Initialize dashboard
+        async function initDashboard() {
+            await refreshStreams();
+            startAutoRefresh();
+        }
+        
+        // Refresh stream data
+        async function refreshStreams() {
+            try {
+                // Get server status and streams
+                const [healthResponse, streamsResponse] = await Promise.all([
+                    fetch(`${SERVER_BASE}/health`),
+                    fetch(`${SERVER_BASE}/api/streams`)
+                ]);
+                
+                const health = await healthResponse.json();
+                const streams = await streamsResponse.json();
+                
+                updateServerInfo(health, streams);
+                updateStreamCards(streams);
+                
+            } catch (error) {
+                console.error('Error refreshing streams:', error);
+                showError('Fehler beim Laden der Streams: ' + error.message);
+                updateServerStatus('offline');
+            }
+        }
+        
+        // Update server information
+        function updateServerInfo(health, streams) {
+            const serverStatus = document.getElementById('serverStatus');
+            const streamCount = document.getElementById('streamCount');
+            const connectionCount = document.getElementById('connectionCount');
+            const lastUpdate = document.getElementById('lastUpdate');
+            
+            if (health.status === 'healthy') {
+                serverStatus.textContent = 'Online';
+                serverStatus.className = 'status-online';
+            } else {
+                serverStatus.textContent = 'Probleme';
+                serverStatus.className = 'status-warning';
+            }
+            
+            streamCount.textContent = streams.totalStreams || 0;
+            connectionCount.textContent = health.connected_clients || 0;
+            lastUpdate.textContent = new Date().toLocaleTimeString();
+        }
+        
+        // Update server status only
+        function updateServerStatus(status) {
+            const serverStatus = document.getElementById('serverStatus');
+            if (status === 'offline') {
+                serverStatus.textContent = 'Offline';
+                serverStatus.className = 'status-offline';
+            }
+        }
+        
+        // Update stream cards
+        async function updateStreamCards(data) {
+            const container = document.getElementById('streamsContainer');
+            
+            // Find active clients by checking recent activity
+            const activeClients = await findActiveClients();
+            
+            if (activeClients.length === 0) {
+                container.innerHTML = `
+                    <div class="no-streams">
+                        <h2>📵 Keine aktiven Streams</h2>
+                        <p>Starte die Mikrofon-App auf einem Client, um Streams zu sehen.</p>
+                        <p>Oder besuche: <code>${SERVER_BASE}</code></p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const streamCards = activeClients.map(clientIP => createStreamCard(clientIP)).join('');
+            container.innerHTML = streamCards;
+        }
+        
+        // Find active clients by testing stream endpoints
+        async function findActiveClients() {
+            const knownClients = ['192.168.188.28', '192.168.188.49']; // Add known clients
+            const activeClients = [];
+            
+            for (const clientIP of knownClients) {
+                try {
+                    const response = await fetch(`${SERVER_BASE}/client/${clientIP}/stream`, {
+                        method: 'HEAD'
+                    });
+                    if (response.ok) {
+                        activeClients.push(clientIP);
+                    }
+                } catch (error) {
+                    // Client not active
+                }
+            }
+            
+            return activeClients;
+        }
+        
+        // Create stream card HTML
+        function createStreamCard(clientIP) {
+            const playerId = `player_${clientIP.replace(/\./g, '_')}`;
+            const cardId = `card_${clientIP.replace(/\./g, '_')}`;
+            
+            return `
+                <div class="stream-card" id="${cardId}">
+                    <div class="stream-header">
+                        <div class="client-info">
+                            <div class="client-ip">🖥️ ${clientIP}</div>
+                            <div class="client-details">
+                                <span id="status_${playerId}">Bereit</span> • 
+                                <span id="format_${playerId}">WebM/Opus</span>
+                            </div>
+                        </div>
+                        <div class="stream-status status-active">🟢 Aktiv</div>
+                    </div>
+                    
+                    <div class="audio-controls">
+                        <div class="control-buttons">
+                            <button class="control-btn" onclick="playStream('${clientIP}', '${playerId}')">
+                                ▶️ Abspielen
+                            </button>
+                            <button class="control-btn" onclick="pauseStream('${playerId}')">
+                                ⏸️ Pause
+                            </button>
+                            <button class="control-btn" onclick="stopStream('${playerId}')">
+                                ⏹️ Stop
+                            </button>
+                            <button class="control-btn" onclick="refreshStream('${clientIP}', '${playerId}')">
+                                🔄 Refresh
+                            </button>
+                        </div>
+                        
+                        <div class="volume-control">
+                            <span>🔊</span>
+                            <input type="range" class="volume-slider" min="0" max="100" value="80" 
+                                   onchange="setVolume('${playerId}', this.value)">
+                            <span id="volume_${playerId}">80%</span>
+                        </div>
+                        
+                        <audio id="${playerId}" controls class="audio-player" preload="none">
+                            <source type="audio/webm">
+                            Ihr Browser unterstützt das Audio-Element nicht.
+                        </audio>
+                    </div>
+                    
+                    <div class="stream-info">
+                        <div class="info-row">
+                            <span>Status:</span>
+                            <span id="info_${playerId}">Bereit</span>
+                        </div>
+                        <div class="info-row">
+                            <span>Stream URL:</span>
+                            <span style="font-family: monospace; font-size: 0.8em;">/client/${clientIP}/stream</span>
+                        </div>
+                        <div class="info-row">
+                            <span>Letzter Refresh:</span>
+                            <span id="refresh_${playerId}">-</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Play stream
+        async function playStream(clientIP, playerId) {
+            const audio = document.getElementById(playerId);
+            const source = audio.querySelector('source');
+            const statusElement = document.getElementById(`status_${playerId}`);
+            const infoElement = document.getElementById(`info_${playerId}`);
+            
+            try {
+                statusElement.textContent = 'Lädt...';
+                infoElement.textContent = 'Stream wird geladen...';
+                
+                const streamUrl = `${SERVER_BASE}/client/${clientIP}/stream?t=${Date.now()}`;
+                source.src = streamUrl;
+                audio.load();
+                
+                // Store player reference
+                streamPlayers.set(playerId, { clientIP, isPlaying: false });
+                
+                audio.addEventListener('loadstart', () => {
+                    statusElement.textContent = 'Lädt...';
+                    infoElement.textContent = 'Stream lädt...';
+                });
+                
+                audio.addEventListener('canplay', () => {
+                    statusElement.textContent = 'Bereit';
+                    infoElement.textContent = 'Stream bereit zum Abspielen';
+                });
+                
+                audio.addEventListener('play', () => {
+                    statusElement.textContent = 'Spielt ab';
+                    infoElement.textContent = 'Stream wird abgespielt';
+                    const player = streamPlayers.get(playerId);
+                    if (player) player.isPlaying = true;
+                });
+                
+                audio.addEventListener('pause', () => {
+                    statusElement.textContent = 'Pausiert';
+                    infoElement.textContent = 'Stream pausiert';
+                    const player = streamPlayers.get(playerId);
+                    if (player) player.isPlaying = false;
+                });
+                
+                audio.addEventListener('error', (e) => {
+                    statusElement.textContent = 'Fehler';
+                    infoElement.textContent = 'Fehler beim Laden: ' + e.type;
+                    console.error('Audio error for', clientIP, ':', e);
+                });
+                
+                // Try to play after a short delay
+                setTimeout(() => {
+                    audio.play().catch(err => {
+                        console.log('Autoplay blocked for', clientIP);
+                        infoElement.textContent = 'Klicke Play um zu starten (Autoplay blockiert)';
+                    });
+                }, 1000);
+                
+                updateRefreshTime(playerId);
+                
+            } catch (error) {
+                statusElement.textContent = 'Fehler';
+                infoElement.textContent = 'Fehler: ' + error.message;
+                console.error('Error playing stream:', error);
+            }
+        }
+        
+        // Pause stream
+        function pauseStream(playerId) {
+            const audio = document.getElementById(playerId);
+            audio.pause();
+        }
+        
+        // Stop stream
+        function stopStream(playerId) {
+            const audio = document.getElementById(playerId);
+            audio.pause();
+            audio.currentTime = 0;
+            const statusElement = document.getElementById(`status_${playerId}`);
+            const infoElement = document.getElementById(`info_${playerId}`);
+            statusElement.textContent = 'Gestoppt';
+            infoElement.textContent = 'Stream gestoppt';
+            
+            const player = streamPlayers.get(playerId);
+            if (player) player.isPlaying = false;
+        }
+        
+        // Refresh stream
+        function refreshStream(clientIP, playerId) {
+            const player = streamPlayers.get(playerId);
+            if (player && player.isPlaying) {
+                playStream(clientIP, playerId);
+            }
+        }
+        
+        // Set volume
+        function setVolume(playerId, value) {
+            const audio = document.getElementById(playerId);
+            const volumeDisplay = document.getElementById(`volume_${playerId}`);
+            audio.volume = value / 100;
+            volumeDisplay.textContent = value + '%';
+        }
+        
+        // Stop all streams
+        function stopAllStreams() {
+            streamPlayers.forEach((player, playerId) => {
+                stopStream(playerId);
+            });
+        }
+        
+        // Update refresh time
+        function updateRefreshTime(playerId) {
+            const refreshElement = document.getElementById(`refresh_${playerId}`);
+            if (refreshElement) {
+                refreshElement.textContent = new Date().toLocaleTimeString();
+            }
+        }
+        
+        // Auto refresh functionality
+        function startAutoRefresh() {
+            if (autoRefreshInterval) return;
+            
+            autoRefreshInterval = setInterval(() => {
+                if (isAutoRefresh) {
+                    refreshStreams();
+                    
+                    // Refresh active streams
+                    streamPlayers.forEach((player, playerId) => {
+                        if (player.isPlaying) {
+                            refreshStream(player.clientIP, playerId);
+                        }
+                    });
+                }
+            }, 10000); // Every 10 seconds
+        }
+        
+        function toggleAutoRefresh() {
+            const btn = document.getElementById('autoRefreshBtn');
+            isAutoRefresh = !isAutoRefresh;
+            
+            if (isAutoRefresh) {
+                btn.textContent = '⏸️ Auto-Refresh';
+                btn.style.background = 'linear-gradient(45deg, #FF6B6B, #4ECDC4)';
+            } else {
+                btn.textContent = '▶️ Auto-Refresh';
+                btn.style.background = 'linear-gradient(45deg, #666, #888)';
+            }
+        }
+        
+        // Show error message
+        function showError(message) {
+            const container = document.getElementById('streamsContainer');
+            container.innerHTML = `<div class="error">❌ ${message}</div>`;
+        }
+        
+        // Initialize dashboard when page loads
+        document.addEventListener('DOMContentLoaded', initDashboard);
+        
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+            }
+        });
+    </script>
+</body>
+</html>
