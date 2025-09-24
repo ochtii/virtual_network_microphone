@@ -17,6 +17,45 @@ import subprocess
 import signal
 # psutil wird dynamisch importiert wo benötigt
 
+# Pfad für persistente Speicherung der Network-Statistiken
+STATS_FILE = os.path.join(os.path.dirname(__file__), 'network_stats.json')
+
+def load_network_stats():
+    """Lade gespeicherte Network-Statistiken von der Festplatte"""
+    try:
+        if os.path.exists(STATS_FILE):
+            with open(STATS_FILE, 'r') as f:
+                stats = json.load(f)
+                # Aktualisiere last_time auf jetzt, da das System neugestartet wurde
+                stats['last_time'] = time.time()
+                return stats
+    except Exception as e:
+        print(f"Fehler beim Laden der Network-Statistiken: {e}")
+    
+    # Standard-Werte wenn keine Datei vorhanden oder Fehler
+    return {
+        'last_bytes_sent': 0,
+        'last_bytes_recv': 0,
+        'last_time': time.time(),
+        'max_download_today': 0,
+        'max_upload_today': 0,
+        'max_download_alltime': 0,
+        'max_upload_alltime': 0,
+        'total_download_today': 0,
+        'total_upload_today': 0,
+        'total_download_alltime': 0,
+        'total_upload_alltime': 0,
+        'last_reset_day': time.strftime('%Y-%m-%d')
+    }
+
+def save_network_stats(stats):
+    """Speichere Network-Statistiken auf die Festplatte"""
+    try:
+        with open(STATS_FILE, 'w') as f:
+            json.dump(stats, f, indent=2)
+    except Exception as e:
+        print(f"Fehler beim Speichern der Network-Statistiken: {e}")
+
 class APIHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         # Wechsle zum public Verzeichnis für statische Dateien
@@ -332,24 +371,12 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
             self.send_error(500, f"Internal Server Error: {str(e)}")
     
     def get_network_metrics(self):
-        """Sammle echte Netzwerk-Metriken mit nativen Linux-Tools"""
+        """Sammle echte Netzwerk-Metriken mit nativen Linux-Tools und persistenter Speicherung"""
         
-        # Initialisiere Network-Stats falls nicht vorhanden
+        # Initialisiere Network-Stats falls nicht vorhanden (lade von Festplatte)
         if not hasattr(self.__class__, '_network_stats'):
-            self.__class__._network_stats = {
-                'last_bytes_sent': 0,
-                'last_bytes_recv': 0,
-                'last_time': time.time(),
-                'max_download_today': 0,
-                'max_upload_today': 0,
-                'max_download_alltime': 0,
-                'max_upload_alltime': 0,
-                'total_download_today': 0,
-                'total_upload_today': 0,
-                'total_download_alltime': 0,
-                'total_upload_alltime': 0,
-                'last_reset_day': time.strftime('%Y-%m-%d')
-            }
+            self.__class__._network_stats = load_network_stats()
+            print(f"Network-Statistiken geladen: {self.__class__._network_stats}")
         
         metrics = {}
         
@@ -406,6 +433,8 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
                         self.__class__._network_stats['total_download_today'] = 0
                         self.__class__._network_stats['total_upload_today'] = 0
                         self.__class__._network_stats['last_reset_day'] = current_day
+                        # Speichere nach Tages-Reset
+                        save_network_stats(self.__class__._network_stats)
                     
                     # Aktualisiere Max-Werte
                     if download_mbps > self.__class__._network_stats['max_download_today']:
@@ -424,6 +453,9 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
                     if bytes_sent_diff > 0:
                         self.__class__._network_stats['total_upload_today'] += bytes_sent_diff
                         self.__class__._network_stats['total_upload_alltime'] += bytes_sent_diff
+                    
+                    # Speichere aktualisierte Statistiken persistent
+                    save_network_stats(self.__class__._network_stats)
                     
                     # Formatiere Ausgabe
                     metrics['download'] = f"{download_mbps:.2f} Mbps"
