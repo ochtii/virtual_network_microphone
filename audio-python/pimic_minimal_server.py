@@ -719,6 +719,15 @@ class HTTPHandler(SimpleHTTPRequestHandler):
         else:
             self.send_error(404)
     
+    def do_OPTIONS(self):
+        """Handle CORS preflight requests"""
+        self.send_response(200)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, HEAD, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization')
+        self.send_header('Access-Control-Max-Age', '86400')
+        self.end_headers()
+
     def do_HEAD(self):
         """Handle HEAD requests - check if resource exists without returning body"""
         if self.path == '/':
