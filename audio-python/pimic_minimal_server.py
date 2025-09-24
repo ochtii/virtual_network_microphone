@@ -14,6 +14,7 @@ import signal
 import logging
 import threading
 import socket
+import socket
 import subprocess
 import platform
 from datetime import datetime
@@ -242,19 +243,31 @@ class AudioStreamHandler:
             client_ip = request_handler.client_address[0]
             logger.info(f"Audio WebSocket connected from {client_ip}")
             
+            # Set socket timeout to prevent indefinite blocking
+            request_handler.connection.settimeout(0.1)
+            
             # Start reading WebSocket frames
             self.read_websocket_frames(request_handler, client_ip)
             
         except Exception as e:
             logger.error(f"Audio WebSocket error: {e}")
+        finally:
+            # Reset socket timeout
+            request_handler.connection.settimeout(None)
     
     def read_websocket_frames(self, request_handler, client_ip):
         """Read and process WebSocket frames"""
         try:
             while True:
-                # Read WebSocket frame header
-                frame_header = request_handler.rfile.read(2)
-                if len(frame_header) != 2:
+                try:
+                    # Read WebSocket frame header with timeout
+                    frame_header = request_handler.rfile.read(2)
+                    if len(frame_header) != 2:
+                        break
+                except socket.timeout:
+                    # Timeout is normal, continue reading
+                    continue
+                except Exception:
                     break
                     
                 fin_rsv_opcode = frame_header[0]

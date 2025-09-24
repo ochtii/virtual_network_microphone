@@ -268,7 +268,7 @@ class PimicAudioClient {
             this.streamWebSocket = new WebSocket(wsUrl);
             
             this.streamWebSocket.onopen = () => {
-                console.log('Audio stream WebSocket connected');
+                console.log('Audio stream WebSocket connected - State:', this.streamWebSocket.readyState);
                 
                 // Send stream configuration
                 this.streamWebSocket.send(JSON.stringify({
@@ -279,6 +279,14 @@ class PimicAudioClient {
                     format: 'audio/webm;codecs=opus'
                 }));
             };
+            
+            // Add connection state monitoring
+            setTimeout(() => {
+                console.log('WebSocket state after 1s:', this.streamWebSocket.readyState);
+                if (this.streamWebSocket.readyState !== 1) {
+                    console.error('WebSocket failed to connect within 1s, state:', this.streamWebSocket.readyState);
+                }
+            }, 1000);
             
             this.streamWebSocket.onerror = (error) => {
                 console.error('WebSocket error:', error);
