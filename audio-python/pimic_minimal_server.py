@@ -47,6 +47,7 @@ server_running = True
 
 # Global audio handler instance
 global_audio_handler = None
+global_rtp_streamer = None
 
 # Logging setup
 logging.basicConfig(
@@ -1307,17 +1308,16 @@ class HTTPHandler(SimpleHTTPRequestHandler):
                 self.send_json_response({'success': False, 'error': 'Missing client_ip'})
                 return
             
-            # Get RTP streamer instance
-            if not hasattr(self.server, 'rtp_streamer'):
-                self.server.rtp_streamer = RTPStreamer()
+            # Get global RTP streamer instance
+            global global_rtp_streamer, global_audio_handler
+            if not global_rtp_streamer:
+                global_rtp_streamer = RTPStreamer()
             
-            # Get audio handler
-            global global_audio_handler
             if not global_audio_handler:
                 global_audio_handler = AudioStreamHandler()
             
             # Start RTP stream
-            result = self.server.rtp_streamer.start_rtp_stream(client_ip, global_audio_handler)
+            result = global_rtp_streamer.start_rtp_stream(client_ip, global_audio_handler)
             self.send_json_response(result)
             
         except Exception as e:
@@ -1340,13 +1340,14 @@ class HTTPHandler(SimpleHTTPRequestHandler):
                 self.send_json_response({'success': False, 'error': 'Missing client_ip'})
                 return
             
-            # Get RTP streamer instance
-            if not hasattr(self.server, 'rtp_streamer'):
+            # Get global RTP streamer instance
+            global global_rtp_streamer
+            if not global_rtp_streamer:
                 self.send_json_response({'success': False, 'error': 'RTP streamer not initialized'})
                 return
             
             # Stop RTP stream
-            result = self.server.rtp_streamer.stop_rtp_stream(client_ip)
+            result = global_rtp_streamer.stop_rtp_stream(client_ip)
             self.send_json_response(result)
             
         except Exception as e:
@@ -1356,10 +1357,11 @@ class HTTPHandler(SimpleHTTPRequestHandler):
     def serve_rtp_streams_api(self):
         """Serve RTP streams API"""
         try:
-            if not hasattr(self.server, 'rtp_streamer'):
-                self.server.rtp_streamer = RTPStreamer()
+            global global_rtp_streamer
+            if not global_rtp_streamer:
+                global_rtp_streamer = RTPStreamer()
             
-            rtp_info = self.server.rtp_streamer.get_active_streams()
+            rtp_info = global_rtp_streamer.get_active_streams()
             self.send_json_response({
                 'success': True,
                 'rtp_streams': rtp_info
