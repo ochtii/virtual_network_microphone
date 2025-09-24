@@ -473,6 +473,8 @@ class HTTPHandler(SimpleHTTPRequestHandler):
             self.serve_static_file()
         elif self.path.startswith('/client/') and self.path.endswith('/stream'):
             self.serve_client_stream()
+        elif self.path.startswith('/client/') and self.path.endswith('/audio'):
+            self.serve_client_audio_player()
         elif self.path == '/ws/audio-stream' and 'upgrade' in self.headers.get('Connection', '').lower():
             self.handle_audio_websocket_upgrade()
         elif self.path == '/ws' or 'upgrade' in self.headers.get('Connection', '').lower():
@@ -552,6 +554,66 @@ class HTTPHandler(SimpleHTTPRequestHandler):
                 
         except Exception as e:
             logger.error(f"Client stream serving error: {e}")
+            self.send_error(500)
+    
+    def serve_client_audio_player(self):
+        """Serve a chunked audio stream that browsers can play"""
+        try:
+            # Parse client IP from URL: /client/192.168.1.100/audio
+            path_parts = self.path.split('/')
+            if len(path_parts) >= 3:
+                client_ip = path_parts[2]
+                
+                logger.info(f"Serving chunked audio for client {client_ip}")
+                
+                # Start chunked response
+                self.send_response(200)
+                self.send_header('Content-Type', 'audio/webm')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.send_header('Cache-Control', 'no-cache')
+                self.send_header('Transfer-Encoding', 'chunked')
+                self.end_headers()
+                
+                # Stream audio data in chunks
+                audio_handler = AudioStreamHandler()
+                chunk_size = 4096  # 4KB chunks
+                timeout = 30  # 30 seconds timeout
+                start_time = time.time()
+                
+                try:
+                    while (time.time() - start_time) < timeout:
+                        audio_data = audio_handler.get_audio_stream(client_ip)
+                        
+                        if audio_data and len(audio_data) > 0:
+                            # Send data in chunks
+                            for i in range(0, len(audio_data), chunk_size):
+                                chunk = audio_data[i:i + chunk_size]
+                                if chunk:
+                                    # Write chunk size in hex followed by CRLF
+                                    chunk_size_hex = hex(len(chunk))[2:].encode() + b'\r\n'
+                                    self.wfile.write(chunk_size_hex)
+                                    # Write chunk data followed by CRLF
+                                    self.wfile.write(chunk + b'\r\n')
+                                    self.wfile.flush()
+                        
+                        # Small delay to prevent busy loop
+                        time.sleep(0.05)  # 50ms delay
+                    
+                    # End chunked encoding
+                    self.wfile.write(b'0\r\n\r\n')
+                    
+                except Exception as e:
+                    logger.error(f"Chunked streaming error: {e}")
+                    # Try to end chunked encoding gracefully
+                    try:
+                        self.wfile.write(b'0\r\n\r\n')
+                    except:
+                        pass
+            else:
+                self.send_error(400, "Invalid audio URL")
+                
+        except Exception as e:
+            logger.error(f"Client audio serving error: {e}")
             self.send_error(500)
     
     def serve_events_stream(self):
