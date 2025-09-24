@@ -35,8 +35,15 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
         elif parsed_path.path == '/reload':
             self.handle_reload_api()
         else:
-            # Statische Dateien servieren
+            # Statische Dateien servieren mit No-Cache-Headers
             super().do_GET()
+    
+    def end_headers(self):
+        # Füge No-Cache-Headers für alle Dateien hinzu
+        self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+        self.send_header('Pragma', 'no-cache')
+        self.send_header('Expires', '0')
+        super().end_headers()
     
     def handle_system_api(self):
         """System Metrics API Endpunkt"""
