@@ -18,7 +18,7 @@ class PimicAudioClient {
         this.recordedChunks = [];
         this.clientIP = null;
         this.streamPort = 9420;
-        this.streamWebSocket = null;
+        // streamWebSocket removed - using HTTP streaming
         
         this.init();
     }
@@ -264,35 +264,6 @@ class PimicAudioClient {
             console.log('Starting HTTP-based audio streaming to Pi');
             this.useHttpAudioStreaming = true;
             
-            this.streamWebSocket.onopen = () => {
-                console.log('Audio stream WebSocket connected - State:', this.streamWebSocket.readyState);
-                
-                // Send stream configuration
-                this.streamWebSocket.send(JSON.stringify({
-                    type: 'stream-config',
-                    clientIP: this.clientIP,
-                    port: port,
-                    bitrate: bitrate,
-                    format: 'audio/webm;codecs=opus'
-                }));
-            };
-            
-            // Add connection state monitoring
-            setTimeout(() => {
-                console.log('WebSocket state after 1s:', this.streamWebSocket.readyState);
-                if (this.streamWebSocket.readyState !== 1) {
-                    console.error('WebSocket failed to connect within 1s, state:', this.streamWebSocket.readyState);
-                }
-            }, 1000);
-            
-            this.streamWebSocket.onerror = (error) => {
-                console.error('WebSocket error:', error);
-            };
-            
-            this.streamWebSocket.onclose = () => {
-                console.log('Audio stream WebSocket closed');
-            };
-            
             // Setup MediaRecorder to send audio to Pi
             this.mediaRecorder = new MediaRecorder(this.mediaStream, {
                 mimeType: 'audio/webm;codecs=opus',
@@ -382,10 +353,7 @@ class PimicAudioClient {
             this.mediaRecorder = null;
         }
         
-        if (this.streamWebSocket) {
-            this.streamWebSocket.close();
-            this.streamWebSocket = null;
-        }
+        // WebSocket cleanup removed - using HTTP streaming
         
         if (this.audioContext) {
             this.audioContext.close();
