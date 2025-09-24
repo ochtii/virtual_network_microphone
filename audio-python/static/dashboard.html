@@ -299,8 +299,12 @@
         
         // Auto-detect protocol and port
         const isHTTPS = window.location.protocol === 'https:';
-        const SERVER_BASE = isHTTPS ? 'https://192.168.188.90:6969' : 'https://192.168.188.90:6969';
+        const isHTTPDashboard = window.location.port === '8081';
+        
+        // If running on HTTP dashboard (port 8081), prefer HTTP API, otherwise use HTTPS
+        const SERVER_BASE = isHTTPDashboard ? 'http://192.168.188.90:8081' : 'https://192.168.188.90:6969';
         const HTTP_FALLBACK = 'http://192.168.188.90:8081';
+        const HTTPS_FALLBACK = 'https://192.168.188.90:6969';
         
         // Initialize dashboard
         async function initDashboard() {
@@ -313,7 +317,7 @@
             let serverBase = SERVER_BASE;
             
             try {
-                // Try HTTPS first, then HTTP fallback
+                // Try primary protocol first, then fallback
                 let healthResponse, streamsResponse;
                 
                 try {
@@ -321,12 +325,14 @@
                         fetch(`${SERVER_BASE}/health`),
                         fetch(`${SERVER_BASE}/api/streams`)
                     ]);
-                } catch (httpsError) {
-                    console.log('HTTPS failed, trying HTTP fallback');
-                    serverBase = HTTP_FALLBACK;
+                } catch (primaryError) {
+                    console.log('Primary server failed, trying fallback');
+                    // If we're on HTTP dashboard, try HTTPS fallback, otherwise try HTTP fallback
+                    const fallbackUrl = isHTTPDashboard ? HTTPS_FALLBACK : HTTP_FALLBACK;
+                    serverBase = fallbackUrl;
                     [healthResponse, streamsResponse] = await Promise.all([
-                        fetch(`${HTTP_FALLBACK}/health`),
-                        fetch(`${HTTP_FALLBACK}/api/streams`)
+                        fetch(`${fallbackUrl}/health`),
+                        fetch(`${fallbackUrl}/api/streams`)
                     ]);
                 }
                 
@@ -410,18 +416,17 @@
                         activeClients.push(clientIP);
                     }
                 } catch (error) {
-                    // Try HTTP fallback if HTTPS fails
-                    if (baseUrl.includes('https')) {
-                        try {
-                            const httpResponse = await fetch(`${HTTP_FALLBACK}/client/${clientIP}/stream`, {
-                                method: 'HEAD'
-                            });
-                            if (httpResponse.ok) {
-                                activeClients.push(clientIP);
-                            }
-                        } catch (httpError) {
-                            // Client not active
+                    // Try fallback protocol
+                    const fallbackUrl = baseUrl.includes('https') ? HTTP_FALLBACK : HTTPS_FALLBACK;
+                    try {
+                        const fallbackResponse = await fetch(`${fallbackUrl}/client/${clientIP}/stream`, {
+                            method: 'HEAD'
+                        });
+                        if (fallbackResponse.ok) {
+                            activeClients.push(clientIP);
                         }
+                    } catch (fallbackError) {
+                        // Client not active on either protocol
                     }
                 }
             }
@@ -430,7 +435,7 @@
         }
         
         // Create stream card HTML
-        function createStreamCard(clientIP) {
+        function createStreamCard(clientIP, serverBase) {
             const playerId = `player_${clientIP.replace(/\./g, '_')}`;
             const cardId = `card_${clientIP.replace(/\./g, '_')}`;
             
@@ -540,13 +545,26 @@
                 audio.addEventListener('error', async (e) => {
                     console.error('Audio error for', clientIP, ':', e);
                     
-                    // Try HTTP fallback if HTTPS failed
-                    if (baseUrl.includes('https') && !source.src.includes('8081')) {
+                    // Try protocol fallback
+                    const currentIsHTTPS = source.src.includes('https');
+                    const currentPort = source.src.includes(':8081') ? '8081' : '6969';
+                    
+                    if (currentIsHTTPS && currentPort === '6969') {
+                        // Try HTTP fallback
                         console.log('Trying HTTP fallback for', clientIP);
                         statusElement.textContent = 'Fallback...';
                         infoElement.textContent = 'Versuche HTTP Fallback...';
                         
                         const fallbackUrl = `${HTTP_FALLBACK}/client/${clientIP}/stream?t=${Date.now()}`;
+                        source.src = fallbackUrl;
+                        audio.load();
+                    } else if (!currentIsHTTPS && currentPort === '8081') {
+                        // Try HTTPS fallback
+                        console.log('Trying HTTPS fallback for', clientIP);
+                        statusElement.textContent = 'Fallback...';
+                        infoElement.textContent = 'Versuche HTTPS Fallback...';
+                        
+                        const fallbackUrl = `${HTTPS_FALLBACK}/client/${clientIP}/stream?t=${Date.now()}`;
                         source.src = fallbackUrl;
                         audio.load();
                     } else {
