@@ -203,9 +203,13 @@ class PimicAudioClient {
             // Start client-side stream server using WebRTC or simple HTTP
             await this.startClientStreamServer(streamPort, bitrate);
             
-            // Register stream with Pi server for coordination
+            // Start WebSocket connection to Pi for audio streaming
+            await this.startAudioStreamToPi(streamPort, bitrate);
+            
+            // Register stream with Pi server (Pi will host the actual HTTP stream)
             const streamId = `client_stream_${Date.now()}_${this.clientIP?.replace(/\./g, '_') || 'unknown'}`;
-            const streamUrl = `http://${this.clientIP || window.location.hostname}:${streamPort}/stream`;
+            const piHost = window.location.hostname;
+            const streamUrl = `http://${piHost}:${streamPort}/client/${this.clientIP}/stream`;
             
             try {
                 const response = await fetch('/api/stream/register', {
@@ -220,14 +224,18 @@ class PimicAudioClient {
                         audioSource: audioSource,
                         bitrate: bitrate,
                         port: streamPort,
-                        name: `Stream from ${this.clientIP || window.location.hostname}`
+                        name: `Client ${this.clientIP || window.location.hostname}`,
+                        requiresProxy: true
                     })
                 });
                 
                 const result = await response.json();
                 console.log('Stream registration result:', result);
+                if (result.streamUrl) {
+                    streamUrl = result.streamUrl; // Use server-provided proxy URL
+                }
             } catch (e) {
-                console.log('Stream registration failed, continuing with local stream:', e.message);
+                console.log('Stream registration failed:', e.message);
             }
             
             this.currentStream = {
@@ -251,21 +259,48 @@ class PimicAudioClient {
         }
     }
     
-    async startClientStreamServer(port, bitrate) {
+    async startAudioStreamToPi(port, bitrate) {
         try {
-            // Use MediaRecorder for audio streaming
+            // Create WebSocket connection to Pi for audio streaming
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${wsProtocol}//${window.location.host}/ws/audio-stream`;
+            
+            console.log('Connecting to Pi WebSocket:', wsUrl);
+            this.streamWebSocket = new WebSocket(wsUrl);
+            
+            this.streamWebSocket.onopen = () => {
+                console.log('Audio stream WebSocket connected');
+                
+                // Send stream configuration
+                this.streamWebSocket.send(JSON.stringify({
+                    type: 'stream-config',
+                    clientIP: this.clientIP,
+                    port: port,
+                    bitrate: bitrate,
+                    format: 'audio/webm;codecs=opus'
+                }));
+            };
+            
+            this.streamWebSocket.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+            
+            this.streamWebSocket.onclose = () => {
+                console.log('Audio stream WebSocket closed');
+            };
+            
+            // Setup MediaRecorder to send audio to Pi
             this.mediaRecorder = new MediaRecorder(this.mediaStream, {
                 mimeType: 'audio/webm;codecs=opus',
                 audioBitsPerSecond: bitrate * 1000
             });
             
-            this.recordedChunks = [];
-            
             this.mediaRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0) {
-                    this.recordedChunks.push(event.data);
-                    // Send chunks to any connected clients via WebSocket
-                    this.broadcastAudioChunk(event.data);
+                if (event.data.size > 0 && this.streamWebSocket?.readyState === WebSocket.OPEN) {
+                    // Convert blob to array buffer and send to Pi
+                    event.data.arrayBuffer().then(buffer => {
+                        this.streamWebSocket.send(buffer);
+                    });
                 }
             };
             
@@ -276,32 +311,15 @@ class PimicAudioClient {
             // Start recording in small chunks for live streaming
             this.mediaRecorder.start(100); // 100ms chunks
             
-            // Start WebSocket server for streaming (simplified approach)
-            this.startWebSocketServer(port);
-            
-            console.log(`Client stream server started on port ${port} with bitrate ${bitrate}kbps`);
+            console.log(`Audio stream to Pi started: ${bitrate}kbps, format: audio/webm`);
             
         } catch (error) {
-            console.error('Failed to start client stream server:', error);
+            console.error('Failed to start audio stream to Pi:', error);
             throw error;
         }
     }
     
-    startWebSocketServer(port) {
-        // Since we can't create a real server in the browser, we'll use a different approach
-        // We'll create a simple peer-to-peer connection system or use the Pi as a relay
-        console.log(`WebSocket relay would listen on port ${port}`);
-        
-        // For now, we'll just log the stream URL that would be available
-        const streamUrl = `http://${this.clientIP || window.location.hostname}:${port}/stream`;
-        console.log(`Stream would be available at: ${streamUrl}`);
-    }
-    
-    broadcastAudioChunk(chunk) {
-        // In a real implementation, this would send the audio chunk to connected clients
-        // For now, we'll just log the chunk size
-        console.log(`Broadcasting audio chunk: ${chunk.size} bytes`);
-    }
+
     
     async stopStream() {
         if (this.currentStream) {
@@ -333,6 +351,16 @@ class PimicAudioClient {
             this.animationId = null;
         }
         
+        if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+            this.mediaRecorder.stop();
+            this.mediaRecorder = null;
+        }
+        
+        if (this.streamWebSocket) {
+            this.streamWebSocket.close();
+            this.streamWebSocket = null;
+        }
+        
         if (this.audioContext) {
             this.audioContext.close();
             this.audioContext = null;
@@ -343,6 +371,7 @@ class PimicAudioClient {
             this.mediaStream = null;
         }
         
+        this.analyser = null;
         this.currentStream = null;
         this.updateStreamControls();
         this.drawEmptyMeter();
@@ -597,9 +626,8 @@ class PimicAudioClient {
     
     updateStreamUrlDisplay() {
         if (this.currentStream) {
-            // Use client IP for stream URL instead of Pi IP
-            const clientIP = this.currentStream.clientIP || this.clientIP || window.location.hostname;
-            const streamUrl = `http://${clientIP}:${this.currentStream.port}/stream`;
+            // Use Pi as proxy with client identifier in URL
+            const streamUrl = this.currentStream.url || `http://${window.location.hostname}:${this.currentStream.port}/client/${this.currentStream.clientIP}/stream`;
             
             document.getElementById('streamUrl').value = streamUrl;
             document.getElementById('activeStreamId').textContent = this.currentStream.id;
@@ -609,16 +637,14 @@ class PimicAudioClient {
     
     openStreamUrl() {
         if (this.currentStream) {
-            const clientIP = this.currentStream.clientIP || this.clientIP || window.location.hostname;
-            const streamUrl = `http://${clientIP}:${this.currentStream.port}/stream`;
+            const streamUrl = this.currentStream.url || `http://${window.location.hostname}:${this.currentStream.port}/client/${this.currentStream.clientIP}/stream`;
             window.open(streamUrl, '_blank');
         }
     }
     
     async copyStreamUrl() {
         if (this.currentStream) {
-            const clientIP = this.currentStream.clientIP || this.clientIP || window.location.hostname;
-            const streamUrl = `http://${clientIP}:${this.currentStream.port}/stream`;
+            const streamUrl = this.currentStream.url || `http://${window.location.hostname}:${this.currentStream.port}/client/${this.currentStream.clientIP}/stream`;
             try {
                 await navigator.clipboard.writeText(streamUrl);
                 
@@ -642,8 +668,7 @@ class PimicAudioClient {
     
     shareStreamUrl() {
         if (this.currentStream) {
-            const clientIP = this.currentStream.clientIP || this.clientIP || window.location.hostname;
-            const streamUrl = `http://${clientIP}:${this.currentStream.port}/stream`;
+            const streamUrl = this.currentStream.url || `http://${window.location.hostname}:${this.currentStream.port}/client/${this.currentStream.clientIP}/stream`;
             
             if (navigator.share) {
                 // Native Web Share API

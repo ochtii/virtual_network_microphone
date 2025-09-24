@@ -24,6 +24,8 @@ import socketserver
 from urllib.parse import urlparse, parse_qs
 import base64
 import hashlib
+import struct
+import hashlib
 
 # Configuration
 CONFIG = {
@@ -41,6 +43,7 @@ active_streams: Dict[str, dict] = {}
 connected_clients: Set[str] = set()  # Changed from websocket objects to client IDs
 audio_levels: Dict[str, dict] = {}
 server_running = True
+audio_stream_handler = None  # Will be initialized in main
 
 # Logging setup
 logging.basicConfig(
@@ -215,6 +218,101 @@ class SimpleWebSocketHandler:
         logger.info(f"Broadcasting message: {message['type']}")
 
 
+class AudioStreamHandler:
+    """Handle audio streaming via WebSocket"""
+    
+    def __init__(self):
+        self.audio_clients = {}  # client_ip -> audio_buffer
+        self.stream_buffers = {}  # stream_id -> audio_buffer
+        
+    def handle_audio_websocket(self, request_handler):
+        """Handle WebSocket connection for audio streaming"""
+        try:
+            client_ip = request_handler.client_address[0]
+            logger.info(f"Audio WebSocket connected from {client_ip}")
+            
+            # Start reading WebSocket frames
+            self.read_websocket_frames(request_handler, client_ip)
+            
+        except Exception as e:
+            logger.error(f"Audio WebSocket error: {e}")
+    
+    def read_websocket_frames(self, request_handler, client_ip):
+        """Read and process WebSocket frames"""
+        try:
+            while True:
+                # Read WebSocket frame header
+                frame_header = request_handler.rfile.read(2)
+                if len(frame_header) != 2:
+                    break
+                    
+                fin_rsv_opcode = frame_header[0]
+                mask_len = frame_header[1]
+                
+                # Parse frame
+                opcode = fin_rsv_opcode & 0x0F
+                masked = bool(mask_len & 0x80)
+                payload_len = mask_len & 0x7F
+                
+                # Handle different payload lengths
+                if payload_len == 126:
+                    payload_len = struct.unpack('>H', request_handler.rfile.read(2))[0]
+                elif payload_len == 127:
+                    payload_len = struct.unpack('>Q', request_handler.rfile.read(8))[0]
+                
+                # Read mask if present
+                mask = b''
+                if masked:
+                    mask = request_handler.rfile.read(4)
+                
+                # Read payload
+                payload = request_handler.rfile.read(payload_len)
+                
+                # Unmask payload if needed
+                if masked:
+                    payload = bytes(payload[i] ^ mask[i % 4] for i in range(len(payload)))
+                
+                # Handle different frame types
+                if opcode == 0x1:  # Text frame (JSON config)
+                    self.handle_config_message(json.loads(payload.decode()), client_ip)
+                elif opcode == 0x2:  # Binary frame (audio data)
+                    self.handle_audio_data(payload, client_ip)
+                elif opcode == 0x8:  # Close frame
+                    break
+                    
+        except Exception as e:
+            logger.error(f"WebSocket frame reading error: {e}")
+        finally:
+            if client_ip in self.audio_clients:
+                del self.audio_clients[client_ip]
+            logger.info(f"Audio WebSocket closed for {client_ip}")
+    
+    def handle_config_message(self, config, client_ip):
+        """Handle stream configuration message"""
+        logger.info(f"Audio stream config from {client_ip}: {config}")
+        self.audio_clients[client_ip] = {
+            'config': config,
+            'buffer': b'',
+            'last_data': time.time()
+        }
+    
+    def handle_audio_data(self, data, client_ip):
+        """Handle incoming audio data"""
+        if client_ip in self.audio_clients:
+            self.audio_clients[client_ip]['buffer'] += data
+            self.audio_clients[client_ip]['last_data'] = time.time()
+            # In a full implementation, this would forward to stream endpoints
+            
+    def get_audio_stream(self, client_ip):
+        """Get audio stream for a specific client"""
+        if client_ip in self.audio_clients:
+            client_data = self.audio_clients[client_ip]
+            buffer = client_data['buffer']
+            client_data['buffer'] = b''  # Clear buffer after reading
+            return buffer
+        return b''
+
+
 class StreamServer:
     """TCP Stream Server für Audio-Daten"""
     
@@ -325,6 +423,10 @@ class HTTPHandler(SimpleHTTPRequestHandler):
             self.serve_health()
         elif self.path.startswith('/static/'):
             self.serve_static_file()
+        elif self.path.startswith('/client/') and self.path.endswith('/stream'):
+            self.serve_client_stream()
+        elif self.path == '/ws/audio-stream' and 'upgrade' in self.headers.get('Connection', '').lower():
+            self.handle_audio_websocket_upgrade()
         elif self.path == '/ws' or 'upgrade' in self.headers.get('Connection', '').lower():
             self.handle_websocket_upgrade()
         else:
@@ -351,6 +453,49 @@ class HTTPHandler(SimpleHTTPRequestHandler):
                 'address': self.client_address,
                 'connected_at': datetime.now()
             })
+    
+    def handle_audio_websocket_upgrade(self):
+        """Handle audio streaming WebSocket upgrade"""
+        try:
+            if self.websocket_handler.handle_websocket_handshake(self):
+                # Hand over to audio stream handler
+                audio_stream_handler.handle_audio_websocket(self)
+        except Exception as e:
+            logger.error(f"Audio WebSocket upgrade failed: {e}")
+            self.send_error(500)
+    
+    def serve_client_stream(self):
+        """Serve audio stream for a specific client"""
+        try:
+            # Parse client IP from URL: /client/192.168.1.100/stream
+            path_parts = self.path.split('/')
+            if len(path_parts) >= 3:
+                client_ip = path_parts[2]
+                
+                logger.info(f"Serving stream for client {client_ip}")
+                
+                # Get audio data from WebSocket buffer
+                audio_data = audio_stream_handler.get_audio_stream(client_ip)
+                
+                if audio_data:
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'audio/webm')
+                    self.send_header('Access-Control-Allow-Origin', '*')
+                    self.send_header('Cache-Control', 'no-cache')
+                    self.end_headers()
+                    
+                    self.wfile.write(audio_data)
+                else:
+                    # No data available, send minimal response
+                    self.send_response(204)  # No Content
+                    self.send_header('Access-Control-Allow-Origin', '*')
+                    self.end_headers()
+            else:
+                self.send_error(400, "Invalid stream URL")
+                
+        except Exception as e:
+            logger.error(f"Client stream serving error: {e}")
+            self.send_error(500)
     
     def serve_events_stream(self):
         """Serve Server-Sent Events stream"""
@@ -507,26 +652,31 @@ class HTTPHandler(SimpleHTTPRequestHandler):
             # Extract stream information
             stream_id = data.get('streamId')
             client_ip = data.get('clientIP') or self.client_address[0]
-            stream_url = data.get('streamUrl')
+            port = data.get('port', CONFIG['default_stream_port'])
             
             if not stream_id:
                 logger.error("Missing streamId in registration")
                 self.send_json_response({'success': False, 'error': 'streamId required'})
                 return
             
-            # Register stream in coordination system (no local server needed)
+            # Generate proxy stream URL
+            pi_host = self.headers.get('Host', 'localhost').split(':')[0]
+            proxy_stream_url = f"http://{pi_host}:{CONFIG['web_port']}/client/{client_ip}/stream"
+            
+            # Register stream in coordination system (Pi proxies the stream)
             stream_config = {
                 'id': stream_id,
                 'client_ip': client_ip,
-                'stream_url': stream_url,
-                'port': data.get('port', CONFIG['default_stream_port']),
+                'stream_url': proxy_stream_url,
+                'port': port,
                 'bitrate': max(CONFIG['min_bitrate'], min(CONFIG['max_bitrate'], 
                               data.get('bitrate', 128))),
                 'audio_source': data.get('audioSource', 'microphone'),
-                'name': data.get('name', f'Client Stream from {client_ip}'),
+                'name': data.get('name', f'Client {client_ip}'),
                 'start_time': datetime.now().isoformat(),
                 'is_active': True,
-                'type': 'client_stream'  # Mark as client-controlled
+                'type': 'client_proxy_stream',  # Mark as Pi-proxied client stream
+                'requires_proxy': True
             }
             
             active_streams[stream_id] = stream_config
@@ -535,12 +685,12 @@ class HTTPHandler(SimpleHTTPRequestHandler):
                 'success': True,
                 'streamId': stream_id,
                 'clientIP': client_ip,
-                'streamUrl': stream_url,
-                'message': 'Stream registered successfully'
+                'streamUrl': proxy_stream_url,
+                'message': 'Stream registered with Pi proxy'
             }
             
             self.send_json_response(response)
-            logger.info(f"Client stream registered: {stream_id} at {stream_url}")
+            logger.info(f"Client stream registered: {stream_id} at {proxy_stream_url}")
             
         except json.JSONDecodeError as je:
             logger.error(f"JSON decode error in registration: {je}")
@@ -823,6 +973,10 @@ if __name__ == "__main__":
         
         print(f"🐍 Starting with Python {sys.version.split()[0]}")
         print("✅ All dependencies available in standard library")
+        
+        # Initialize global handlers
+        global audio_stream_handler
+        audio_stream_handler = AudioStreamHandler()
         
         server = PimicAudioServer()
         server.start()
