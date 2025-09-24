@@ -575,6 +575,18 @@ class PimicAudioServer:
     def __init__(self):
         self.http_server = None
         self.network_discovery = None
+    
+    def get_server_ip(self):
+        """Get the server's IP address"""
+        try:
+            # Create a socket to get the local IP
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+            ip = s.getsockname()[0]
+            s.close()
+            return ip
+        except Exception:
+            return "localhost"
         
     def start(self):
         """Start all server components"""
@@ -597,6 +609,26 @@ class PimicAudioServer:
         
         # Start HTTP server
         self.http_server = HTTPServer(("0.0.0.0", CONFIG['web_port']), HTTPHandler)
+        
+        # Check for HTTPS certificates and wrap server if available
+        cert_file = "/opt/pimic-audio/server.crt"
+        key_file = "/opt/pimic-audio/server.key"
+        
+        if os.path.exists(cert_file) and os.path.exists(key_file):
+            try:
+                import ssl
+                context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+                context.load_cert_chain(cert_file, key_file)
+                self.http_server.socket = context.wrap_socket(self.http_server.socket, server_side=True)
+                logger.info(f"🔒 HTTPS enabled on port {CONFIG['web_port']}")
+                print(f"🔒 HTTPS: https://{self.get_server_ip()}:{CONFIG['web_port']}")
+            except Exception as e:
+                logger.warning(f"HTTPS setup failed, using HTTP: {e}")
+                print(f"⚠️  HTTPS setup failed, using HTTP: {e}")
+        else:
+            logger.info("📡 HTTP server (no SSL certificates found)")
+            print(f"⚠️  HTTP only: Microphone access requires HTTPS in modern browsers")
+            print(f"💡 For HTTPS, generate certificates or use localhost")
         
         # Setup signal handlers
         signal.signal(signal.SIGINT, self.signal_handler)
