@@ -334,6 +334,8 @@ class HTTPHandler(SimpleHTTPRequestHandler):
         """Handle POST requests"""
         if self.path == '/api/stream/start':
             self.handle_start_stream()
+        elif self.path == '/api/stream/register':
+            self.handle_register_stream()
         elif self.path == '/api/stream/stop':
             self.handle_stop_stream()
         elif self.path == '/api/audio/level':
@@ -472,6 +474,79 @@ class HTTPHandler(SimpleHTTPRequestHandler):
             self.send_json_response({'success': False, 'error': f'Invalid JSON: {je}'})
         except Exception as e:
             logger.error(f"Stream start error: {e}")
+            self.send_json_response({'success': False, 'error': str(e)})
+    
+    def handle_register_stream(self):
+        """Handle client-side stream registration"""
+        try:
+            logger.info("Processing stream registration request")
+            
+            # Check Content-Length
+            if 'Content-Length' not in self.headers:
+                logger.error("Missing Content-Length header")
+                self.send_json_response({'success': False, 'error': 'Missing Content-Length header'})
+                return
+                
+            content_length = int(self.headers['Content-Length'])
+            if content_length <= 0:
+                logger.error("Invalid Content-Length")
+                self.send_json_response({'success': False, 'error': 'Invalid Content-Length'})
+                return
+                
+            post_data = self.rfile.read(content_length)
+            logger.info(f"Received registration data ({len(post_data)} bytes): {post_data}")
+            
+            if not post_data or not post_data.strip():
+                logger.error("Empty registration data received")
+                self.send_json_response({'success': False, 'error': 'Empty request body'})
+                return
+                
+            data = json.loads(post_data.decode('utf-8'))
+            logger.info(f"Parsed registration data: {data}")
+            
+            # Extract stream information
+            stream_id = data.get('streamId')
+            client_ip = data.get('clientIP') or self.client_address[0]
+            stream_url = data.get('streamUrl')
+            
+            if not stream_id:
+                logger.error("Missing streamId in registration")
+                self.send_json_response({'success': False, 'error': 'streamId required'})
+                return
+            
+            # Register stream in coordination system (no local server needed)
+            stream_config = {
+                'id': stream_id,
+                'client_ip': client_ip,
+                'stream_url': stream_url,
+                'port': data.get('port', CONFIG['default_stream_port']),
+                'bitrate': max(CONFIG['min_bitrate'], min(CONFIG['max_bitrate'], 
+                              data.get('bitrate', 128))),
+                'audio_source': data.get('audioSource', 'microphone'),
+                'name': data.get('name', f'Client Stream from {client_ip}'),
+                'start_time': datetime.now().isoformat(),
+                'is_active': True,
+                'type': 'client_stream'  # Mark as client-controlled
+            }
+            
+            active_streams[stream_id] = stream_config
+            
+            response = {
+                'success': True,
+                'streamId': stream_id,
+                'clientIP': client_ip,
+                'streamUrl': stream_url,
+                'message': 'Stream registered successfully'
+            }
+            
+            self.send_json_response(response)
+            logger.info(f"Client stream registered: {stream_id} at {stream_url}")
+            
+        except json.JSONDecodeError as je:
+            logger.error(f"JSON decode error in registration: {je}")
+            self.send_json_response({'success': False, 'error': f'Invalid JSON: {je}'})
+        except Exception as e:
+            logger.error(f"Stream registration error: {e}")
             self.send_json_response({'success': False, 'error': str(e)})
     
     def handle_stop_stream(self):

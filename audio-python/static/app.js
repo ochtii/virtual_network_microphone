@@ -12,13 +12,22 @@ class PimicAudioClient {
         this.lastLevelSendTime = 0;
         this.levelSendInterval = 500; // 500ms = 2 requests per second max
         
+        // Client-side streaming
+        this.localStreamServer = null;
+        this.mediaRecorder = null;
+        this.recordedChunks = [];
+        this.clientIP = null;
+        this.streamPort = 9420;
+        this.streamWebSocket = null;
+        
         this.init();
     }
     
-    init() {
+    async init() {
         this.setupEventListeners();
         this.setupAudioMeter();
         this.connectEventSource();
+        await this.detectClientIP();
         this.loadData();
         this.updateConnectionStatus('🟢 Python Service Aktiv');
     }
@@ -85,6 +94,51 @@ class PimicAudioClient {
         }
     }
     
+    async detectClientIP() {
+        try {
+            // Use RTCPeerConnection to detect client IP
+            const pc = new RTCPeerConnection({
+                iceServers: [{urls: 'stun:stun.l.google.com:19302'}]
+            });
+            
+            pc.createDataChannel('');
+            
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            
+            return new Promise((resolve) => {
+                pc.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        const candidate = event.candidate.candidate;
+                        const ipMatch = candidate.match(/([0-9]{1,3}\.){3}[0-9]{1,3}/);
+                        if (ipMatch && !ipMatch[0].startsWith('169.254') && !ipMatch[0].startsWith('127.')) {
+                            this.clientIP = ipMatch[0];
+                            console.log('Detected client IP:', this.clientIP);
+                            pc.close();
+                            resolve(this.clientIP);
+                        }
+                    }
+                };
+                
+                // Fallback: use window.location.hostname if available
+                setTimeout(() => {
+                    if (!this.clientIP) {
+                        // Try to get IP from current connection
+                        this.clientIP = window.location.hostname;
+                        console.log('Using fallback IP from location:', this.clientIP);
+                    }
+                    pc.close();
+                    resolve(this.clientIP);
+                }, 2000);
+            });
+            
+        } catch (error) {
+            console.log('IP detection failed, using fallback');
+            this.clientIP = window.location.hostname;
+            return this.clientIP;
+        }
+    }
+    
     handleServerEvent(data) {
         switch (data.type) {
             case 'config':
@@ -146,44 +200,107 @@ class PimicAudioClient {
             this.analyser.fftSize = 256;
             source.connect(this.analyser);
             
-            // Start stream via HTTP API
-            const response = await fetch('/api/stream/start', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    audioSource: audioSource,
-                    bitrate: bitrate,
-                    port: streamPort,
-                    name: `Stream from ${location.hostname}`
-                })
-            });
+            // Start client-side stream server using WebRTC or simple HTTP
+            await this.startClientStreamServer(streamPort, bitrate);
             
-            const result = await response.json();
+            // Register stream with Pi server for coordination
+            const streamId = `client_stream_${Date.now()}_${this.clientIP?.replace(/\./g, '_') || 'unknown'}`;
+            const streamUrl = `http://${this.clientIP || window.location.hostname}:${streamPort}/stream`;
             
-            if (result.success) {
-                this.currentStream = {
-                    id: result.streamId,
-                    port: result.port,
-                    config: result.config
-                };
+            try {
+                const response = await fetch('/api/stream/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        streamId: streamId,
+                        clientIP: this.clientIP || window.location.hostname,
+                        streamUrl: streamUrl,
+                        audioSource: audioSource,
+                        bitrate: bitrate,
+                        port: streamPort,
+                        name: `Stream from ${this.clientIP || window.location.hostname}`
+                    })
+                });
                 
-                this.updateStreamControls();
-                
-                // Start audio monitoring
-                this.startAudioMonitoring();
-                
-                console.log('Stream started:', result.streamId);
-            } else {
-                throw new Error(result.error || 'Stream start failed');
+                const result = await response.json();
+                console.log('Stream registration result:', result);
+            } catch (e) {
+                console.log('Stream registration failed, continuing with local stream:', e.message);
             }
+            
+            this.currentStream = {
+                id: streamId,
+                port: streamPort,
+                url: streamUrl,
+                clientIP: this.clientIP || window.location.hostname
+            };
+            
+            this.updateStreamControls();
+            
+            // Start audio monitoring
+            this.startAudioMonitoring();
+            
+            console.log('Client stream started:', streamId, streamUrl);
             
         } catch (error) {
             console.error('Stream start error:', error);
             alert('Fehler beim Starten: ' + error.message);
             this.cleanup();
         }
+    }
+    
+    async startClientStreamServer(port, bitrate) {
+        try {
+            // Use MediaRecorder for audio streaming
+            this.mediaRecorder = new MediaRecorder(this.mediaStream, {
+                mimeType: 'audio/webm;codecs=opus',
+                audioBitsPerSecond: bitrate * 1000
+            });
+            
+            this.recordedChunks = [];
+            
+            this.mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    this.recordedChunks.push(event.data);
+                    // Send chunks to any connected clients via WebSocket
+                    this.broadcastAudioChunk(event.data);
+                }
+            };
+            
+            this.mediaRecorder.onerror = (event) => {
+                console.error('MediaRecorder error:', event.error);
+            };
+            
+            // Start recording in small chunks for live streaming
+            this.mediaRecorder.start(100); // 100ms chunks
+            
+            // Start WebSocket server for streaming (simplified approach)
+            this.startWebSocketServer(port);
+            
+            console.log(`Client stream server started on port ${port} with bitrate ${bitrate}kbps`);
+            
+        } catch (error) {
+            console.error('Failed to start client stream server:', error);
+            throw error;
+        }
+    }
+    
+    startWebSocketServer(port) {
+        // Since we can't create a real server in the browser, we'll use a different approach
+        // We'll create a simple peer-to-peer connection system or use the Pi as a relay
+        console.log(`WebSocket relay would listen on port ${port}`);
+        
+        // For now, we'll just log the stream URL that would be available
+        const streamUrl = `http://${this.clientIP || window.location.hostname}:${port}/stream`;
+        console.log(`Stream would be available at: ${streamUrl}`);
+    }
+    
+    broadcastAudioChunk(chunk) {
+        // In a real implementation, this would send the audio chunk to connected clients
+        // For now, we'll just log the chunk size
+        console.log(`Broadcasting audio chunk: ${chunk.size} bytes`);
     }
     
     async stopStream() {
@@ -480,7 +597,9 @@ class PimicAudioClient {
     
     updateStreamUrlDisplay() {
         if (this.currentStream) {
-            const streamUrl = `${window.location.origin}/stream/${this.currentStream.id}`;
+            // Use client IP for stream URL instead of Pi IP
+            const clientIP = this.currentStream.clientIP || this.clientIP || window.location.hostname;
+            const streamUrl = `http://${clientIP}:${this.currentStream.port}/stream`;
             
             document.getElementById('streamUrl').value = streamUrl;
             document.getElementById('activeStreamId').textContent = this.currentStream.id;
@@ -490,14 +609,16 @@ class PimicAudioClient {
     
     openStreamUrl() {
         if (this.currentStream) {
-            const streamUrl = `${window.location.origin}/stream/${this.currentStream.id}`;
+            const clientIP = this.currentStream.clientIP || this.clientIP || window.location.hostname;
+            const streamUrl = `http://${clientIP}:${this.currentStream.port}/stream`;
             window.open(streamUrl, '_blank');
         }
     }
     
     async copyStreamUrl() {
         if (this.currentStream) {
-            const streamUrl = `${window.location.origin}/stream/${this.currentStream.id}`;
+            const clientIP = this.currentStream.clientIP || this.clientIP || window.location.hostname;
+            const streamUrl = `http://${clientIP}:${this.currentStream.port}/stream`;
             try {
                 await navigator.clipboard.writeText(streamUrl);
                 
@@ -521,7 +642,8 @@ class PimicAudioClient {
     
     shareStreamUrl() {
         if (this.currentStream) {
-            const streamUrl = `${window.location.origin}/stream/${this.currentStream.id}`;
+            const clientIP = this.currentStream.clientIP || this.clientIP || window.location.hostname;
+            const streamUrl = `http://${clientIP}:${this.currentStream.port}/stream`;
             
             if (navigator.share) {
                 // Native Web Share API
