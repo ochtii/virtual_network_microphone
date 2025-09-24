@@ -84,6 +84,9 @@ function showView(viewName) {
 function startLiveUpdates() {
     if (updateInterval) clearInterval(updateInterval);
     
+    // Get current update interval setting
+    const currentUpdateInterval = getCurrentUpdateInterval();
+    
     // Initial fetch
     if (currentView === 'system') {
         fetchSystemMetrics();
@@ -98,7 +101,19 @@ function startLiveUpdates() {
         } else if (currentView === 'network') {
             fetchNetworkMetrics();
         }
-    }, 2000); // 2000ms updates (2 seconds)
+    }, currentUpdateInterval);
+}
+
+function getCurrentUpdateInterval() {
+    // Try to get from slider if available
+    const slider = document.getElementById('updateIntervalSlider');
+    if (slider) {
+        return parseInt(slider.value);
+    }
+    
+    // Fallback to saved setting
+    const saved = localStorage.getItem('updateInterval');
+    return saved ? parseInt(saved) : 2000;
 }
 
 function stopLiveUpdates() {
@@ -136,7 +151,43 @@ function updateHorizontalNav() {
 // Setup touch-friendly settings
 function setupTouchSettings() {
     let currentFontSize = 14;
+    let currentUpdateInterval = 2000;
+    let displayOptions = {
+        showCpuTemp: true,
+        showVoltage: true,
+        showUptime: true,
+        showServices: true
+    };
+
+    // Update-Intervall Schieberegler
+    const intervalSlider = document.getElementById('updateIntervalSlider');
+    const intervalDisplay = document.getElementById('intervalDisplay');
     
+    if (intervalSlider && intervalDisplay) {
+        intervalSlider.addEventListener('input', () => {
+            currentUpdateInterval = parseInt(intervalSlider.value);
+            intervalDisplay.textContent = currentUpdateInterval + 'ms';
+        });
+        
+        intervalSlider.addEventListener('change', () => {
+            // Update live when slider changes
+            stopLiveUpdates();
+            setTimeout(() => {
+                startLiveUpdates();
+            }, 100);
+        });
+    }
+
+    // Anzeige-Optionen Checkboxen
+    ['showCpuTemp', 'showVoltage', 'showUptime', 'showServices'].forEach(option => {
+        const checkbox = document.getElementById(option);
+        if (checkbox) {
+            checkbox.addEventListener('change', () => {
+                displayOptions[option] = checkbox.checked;
+            });
+        }
+    });
+
     // Font size controls
     const minusBtn = document.getElementById('fontSizeMinus');
     const plusBtn = document.getElementById('fontSizePlus');
@@ -212,20 +263,29 @@ function setupTouchSettings() {
         applyBtn.addEventListener('click', () => {
             // Save to localStorage
             localStorage.setItem('fontSize', currentFontSize);
+            localStorage.setItem('updateInterval', currentUpdateInterval);
+            localStorage.setItem('displayOptions', JSON.stringify(displayOptions));
+            
             const activeTheme = document.querySelector('.theme-option.active');
             if (activeTheme) {
                 localStorage.setItem('theme', activeTheme.dataset.theme);
             }
             
+            // Restart live updates with new interval
+            stopLiveUpdates();
+            setTimeout(() => {
+                startLiveUpdates();
+            }, 100);
+            
             // Visual feedback
             const originalText = applyBtn.textContent;
-            applyBtn.textContent = 'Gespeichert!';
+            applyBtn.textContent = '✅ Gespeichert!';
             applyBtn.style.background = '#28a745';
             
             setTimeout(() => {
                 applyBtn.textContent = originalText;
                 applyBtn.style.background = '';
-            }, 1500);
+            }, 2000);
         });
     }
     
@@ -293,12 +353,40 @@ function setupTouchSettings() {
     // Load saved settings
     const savedFontSize = localStorage.getItem('fontSize');
     const savedTheme = localStorage.getItem('theme') || 'dark';
+    const savedInterval = localStorage.getItem('updateInterval');
+    const savedDisplayOptions = localStorage.getItem('displayOptions');
     
     if (savedFontSize) {
         currentFontSize = parseInt(savedFontSize);
         updateFontSizeDisplay();
         applyFontSize();
     }
+    
+    if (savedInterval) {
+        currentUpdateInterval = parseInt(savedInterval);
+        if (intervalSlider) intervalSlider.value = currentUpdateInterval;
+        if (intervalDisplay) intervalDisplay.textContent = currentUpdateInterval + 'ms';
+    }
+    
+    if (savedDisplayOptions) {
+        try {
+            const options = JSON.parse(savedDisplayOptions);
+            displayOptions = { ...displayOptions, ...options };
+            
+            // Update checkboxes
+            Object.keys(displayOptions).forEach(key => {
+                const checkbox = document.getElementById(key);
+                if (checkbox) {
+                    checkbox.checked = displayOptions[key];
+                }
+            });
+        } catch (e) {
+            console.warn('Failed to load display options:', e);
+        }
+    }
+    
+    // Expose display options globally for fetchSystemMetrics
+    window.displayOptions = displayOptions;
     
     // Set theme
     document.querySelectorAll('.theme-option').forEach(opt => opt.classList.remove('active'));
@@ -460,7 +548,7 @@ function fetchSystemMetrics() {
                         </div>
                     </div>
                     
-                    ${data.cpu_temp ? `
+                    ${data.cpu_temp && window.displayOptions?.showCpuTemp !== false ? `
                     <div class="metric-item">
                         <span class="metric-label">CPU Temperatur:</span>
                         <div class="metric-bar-container">
@@ -488,18 +576,24 @@ function fetchSystemMetrics() {
                     
                     <div class="metric-section compact">
                         <div class="metric-row">
+                            ${window.displayOptions?.showUptime !== false ? `
                             <div class="metric-item compact">
                                 <span class="metric-label">Uptime:</span>
                                 <span class="metric-value uptime">${data.uptime_hours !== undefined ? data.uptime_hours + 'h ' + data.uptime_minutes + 'm' : data.uptime}</span>
                             </div>
+                            ` : ''}
+                            ${window.displayOptions?.showServices !== false ? `
                             <div class="metric-item compact">
                                 <span class="metric-label">PM2 Services:</span>
                                 <span class="metric-value online-check">${data.active_services || 0}</span>
                             </div>
+                            ` : ''}
+                            ${window.displayOptions?.showVoltage !== false ? `
                             <div class="metric-item compact">
                                 <span class="metric-label">Spannung:</span>
                                 <span class="metric-value voltage">${data.voltage || 'N/A'}</span>
                             </div>
+                            ` : ''}
                         </div>
                     </div>
                 </div>

@@ -42,6 +42,40 @@
                 </div>
                 
                 <div class="setting-group">
+                    <span class="setting-label">Update-Intervall:</span>
+                    <div class="interval-controls">
+                        <input type="range" id="updateIntervalSlider" min="300" max="3000" step="100" value="2000">
+                        <div class="interval-display" id="intervalDisplay">2000ms</div>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <span class="setting-label">Anzeige-Optionen:</span>
+                    <div class="display-options">
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="showCpuTemp" checked>
+                            <span class="checkmark"></span>
+                            CPU Temperatur anzeigen
+                        </label>
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="showVoltage" checked>
+                            <span class="checkmark"></span>
+                            Spannung anzeigen
+                        </label>
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="showUptime" checked>
+                            <span class="checkmark"></span>
+                            Uptime anzeigen
+                        </label>
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="showServices" checked>
+                            <span class="checkmark"></span>
+                            PM2 Services anzeigen
+                        </label>
+                    </div>
+                </div>
+
+                <div class="setting-group">
                     <span class="setting-label">Theme:</span>
                     <div class="theme-toggle" id="themeToggle">
                         <button class="theme-option" data-theme="light">Light</button>
@@ -51,11 +85,10 @@
                     </div>
                 </div>
                 
-                <div class="setting-group">
-                    <button id="reloadButton" class="settings-button reload-button">🔄 App & Browser Neustart</button>
+                <div class="setting-group button-group">
+                    <button id="reloadButton" class="settings-button reload-button touch-friendly">🔄 App & Browser Neustart</button>
+                    <button id="applySettings" class="settings-button save-button touch-friendly">💾 Einstellungen Speichern</button>
                 </div>
-                
-                <button id="applySettings" class="settings-button">Einstellungen Speichern</button>
             </div>
         </div>
         <div id="placeholder" class="view-content">

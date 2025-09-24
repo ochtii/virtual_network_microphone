@@ -782,6 +782,116 @@ body.acid-theme::after {
     border-color: #495057;
 }
 
+/* Touch-freundliche Buttons */
+.touch-friendly {
+    min-height: 60px !important;
+    font-size: 16px !important;
+    padding: 15px 25px !important;
+    margin: 10px 5px !important;
+}
+
+.button-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.button-group .settings-button {
+    flex: 1;
+    min-width: 200px;
+}
+
+/* Update-Intervall Schieberegler */
+.interval-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.interval-controls input[type="range"] {
+    flex: 1;
+    height: 6px;
+    background: #ddd;
+    outline: none;
+    border-radius: 5px;
+    appearance: none;
+}
+
+.interval-controls input[type="range"]::-webkit-slider-thumb {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #007bff;
+    cursor: pointer;
+}
+
+.interval-controls input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #007bff;
+    cursor: pointer;
+    border: none;
+}
+
+.interval-display {
+    min-width: 80px;
+    padding: 8px 12px;
+    background: #e9ecef;
+    border-radius: 4px;
+    font-weight: bold;
+    text-align: center;
+}
+
+.dark-theme .interval-display {
+    background: #495057;
+    color: #e0e0e0;
+}
+
+.dark-theme .interval-controls input[type="range"] {
+    background: #495057;
+}
+
+.dark-theme .interval-controls input[type="range"]::-webkit-slider-thumb {
+    background: #0d6efd;
+}
+
+.dark-theme .interval-controls input[type="range"]::-moz-range-thumb {
+    background: #0d6efd;
+}
+
+/* Anzeige-Optionen Checkboxen */
+.display-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.checkbox-container {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.checkbox-container:hover {
+    background: rgba(0, 123, 255, 0.1);
+}
+
+.checkbox-container input {
+    margin-right: 12px;
+    transform: scale(1.3);
+    cursor: pointer;
+}
+
+.checkmark {
+    margin-left: 8px;
+}
+
 .setting-label {
     display: block;
     font-size: 16px;
