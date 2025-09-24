@@ -89,14 +89,18 @@ class PimicAudioClient {
     
     async startStream() {
         try {
-            // Check if running over HTTPS or localhost
-            const isSecureContext = location.protocol === 'https:' || 
-                                   location.hostname === 'localhost' || 
+            // Check if running over HTTPS or in a secure context
+            const isLocalNetwork = location.hostname === 'localhost' || 
                                    location.hostname === '127.0.0.1' ||
+                                   location.hostname.startsWith('192.168.') ||
+                                   location.hostname.startsWith('10.') ||
+                                   location.hostname.startsWith('172.') ||
                                    location.hostname.endsWith('.local');
+                                   
+            const isSecureContext = location.protocol === 'https:' || isLocalNetwork;
 
             if (!isSecureContext) {
-                throw new Error('HTTPS required: Modern browsers require HTTPS for microphone access. Please use HTTPS or access via localhost.');
+                throw new Error('HTTPS required: Modern browsers require HTTPS for microphone access. Please use HTTPS or access via localhost/local network.');
             }
 
             // Check if getUserMedia is available

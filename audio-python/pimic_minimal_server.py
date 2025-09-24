@@ -19,7 +19,8 @@ import platform
 from datetime import datetime
 from typing import Dict, List, Optional, Set
 from pathlib import Path
-from http.server import HTTPServer, SimpleHTTPRequestHandler
+from http.server import HTTPServer, SimpleHTTPRequestHandler, ThreadingHTTPServer
+import socketserver
 from urllib.parse import urlparse, parse_qs
 import base64
 import hashlib
@@ -27,7 +28,7 @@ import hashlib
 # Configuration
 CONFIG = {
     'web_port': 6969,
-    'default_stream_port': 420,
+    'default_stream_port': 9420,
     'max_bitrate': 320,
     'min_bitrate': 64,
     'sample_rate': 44100,
@@ -225,17 +226,38 @@ class StreamServer:
     def start(self):
         """Start stream server"""
         try:
+            logger.info(f"Creating socket for stream server on port {self.port}")
             self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            
+            # Set socket timeout to prevent hanging
+            self.server_socket.settimeout(5.0)
+            
+            logger.info(f"Binding socket to port {self.port}")
             self.server_socket.bind(('0.0.0.0', self.port))
+            
+            logger.info(f"Starting to listen on port {self.port}")
             self.server_socket.listen(5)
             self.running = True
             
-            threading.Thread(target=self._accept_loop, daemon=True).start()
-            logger.info(f"Stream server started on port {self.port}")
+            # Remove timeout for accept operations
+            self.server_socket.settimeout(None)
             
+            threading.Thread(target=self._accept_loop, daemon=True).start()
+            logger.info(f"Stream server started successfully on port {self.port}")
+            
+        except socket.timeout:
+            logger.error(f"Stream server bind/listen timeout on port {self.port}")
+            raise
+        except OSError as e:
+            if e.errno == 98:  # Address already in use
+                logger.error(f"Port {self.port} already in use")
+            else:
+                logger.error(f"Stream server socket error: {e}")
+            raise
         except Exception as e:
             logger.error(f"Stream server start failed: {e}")
+            raise
     
     def _accept_loop(self):
         """Accept incoming connections"""
@@ -337,39 +359,74 @@ class HTTPHandler(SimpleHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
         
-        # Send initial config
+        # Send initial config and close connection immediately to avoid blocking
         config_event = f"data: {json.dumps({'type': 'config', 'config': CONFIG})}\\n\\n"
         self.wfile.write(config_event.encode())
         self.wfile.flush()
         
-        # Keep connection alive (simplified - in production use proper SSE)
-        try:
-            while server_running:
-                # Send heartbeat
-                heartbeat = f"data: {json.dumps({'type': 'heartbeat', 'timestamp': time.time()})}\\n\\n"
-                self.wfile.write(heartbeat.encode())
-                self.wfile.flush()
-                time.sleep(30)
-        except:
-            pass
+        # Send one heartbeat and close (no blocking while loop)
+        heartbeat = f"data: {json.dumps({'type': 'heartbeat', 'timestamp': time.time()})}\\n\\n"
+        self.wfile.write(heartbeat.encode())
+        self.wfile.flush()
+        
+        # Connection closes automatically, no blocking
     
     def handle_start_stream(self):
         """Handle stream start request"""
         try:
+            logger.info("Processing stream start request")
+            logger.info(f"Headers: {dict(self.headers)}")
+            
+            # Check if Content-Length header exists
+            if 'Content-Length' not in self.headers:
+                logger.error("Missing Content-Length header")
+                self.send_json_response({'success': False, 'error': 'Missing Content-Length header'})
+                return
+                
             content_length = int(self.headers['Content-Length'])
+            logger.info(f"Content-Length: {content_length}")
+            
+            if content_length <= 0:
+                logger.error("Invalid Content-Length")
+                self.send_json_response({'success': False, 'error': 'Invalid Content-Length'})
+                return
+                
             post_data = self.rfile.read(content_length)
+            
+            logger.info(f"Received POST data ({len(post_data)} bytes): {post_data}")
+            
+            # Check if post_data is empty or invalid
+            if not post_data or not post_data.strip():
+                logger.error("Empty POST data received")
+                self.send_json_response({'success': False, 'error': 'Empty request body'})
+                return
+                
             data = json.loads(post_data.decode('utf-8'))
+            logger.info(f"Parsed JSON data: {data}")
             
             client_ip = self.client_address[0]
             stream_id = f"stream_{int(time.time() * 1000)}_{client_ip.replace('.', '_')}"
             stream_port = data.get('port', CONFIG['default_stream_port'])
             
-            # Find available port
-            while any(s['port'] == stream_port for s in active_streams.values()):
+            logger.info(f"Looking for available port starting from {stream_port}")
+            
+            # Find available port with safety limit
+            max_port_attempts = 100
+            port_attempts = 0
+            original_port = stream_port
+            
+            while any(s['port'] == stream_port for s in active_streams.values()) and port_attempts < max_port_attempts:
                 stream_port += 1
+                port_attempts += 1
                 if stream_port > 65535:
                     stream_port = CONFIG['default_stream_port']
-                    break
+                
+            if port_attempts >= max_port_attempts:
+                logger.error(f"Could not find available port after {max_port_attempts} attempts")
+                self.send_json_response({'success': False, 'error': 'No available ports'})
+                return
+                
+            logger.info(f"Selected port {stream_port} for stream {stream_id}")
             
             stream_config = {
                 'id': stream_id,
@@ -383,12 +440,21 @@ class HTTPHandler(SimpleHTTPRequestHandler):
                 'is_active': True
             }
             
-            active_streams[stream_id] = stream_config
+            logger.info(f"Creating stream server for {stream_id} on port {stream_port}")
             
             # Start stream server
             stream_server = StreamServer(stream_port)
-            stream_server.start()
-            stream_config['server'] = stream_server
+            try:
+                stream_server.start()
+                stream_config['server'] = stream_server
+                active_streams[stream_id] = stream_config
+                
+                logger.info(f"Stream server started successfully for {stream_id}")
+                
+            except Exception as server_error:
+                logger.error(f"Failed to start stream server: {server_error}")
+                self.send_json_response({'success': False, 'error': f'Failed to start stream server: {server_error}'})
+                return
             
             # Send response
             response = {
@@ -399,8 +465,11 @@ class HTTPHandler(SimpleHTTPRequestHandler):
             }
             
             self.send_json_response(response)
-            logger.info(f"Stream started: {stream_id} on port {stream_port}")
+            logger.info(f"Stream started successfully: {stream_id} on port {stream_port}")
             
+        except json.JSONDecodeError as je:
+            logger.error(f"JSON decode error: {je}")
+            self.send_json_response({'success': False, 'error': f'Invalid JSON: {je}'})
         except Exception as e:
             logger.error(f"Stream start error: {e}")
             self.send_json_response({'success': False, 'error': str(e)})
@@ -607,24 +676,33 @@ class PimicAudioServer:
         self.network_discovery = NetworkDiscovery()
         self.network_discovery.start_discovery()
         
-        # Start HTTP server
-        self.http_server = HTTPServer(("0.0.0.0", CONFIG['web_port']), HTTPHandler)
+        # Start HTTP server with threading support
+        self.http_server = ThreadingHTTPServer(("0.0.0.0", CONFIG['web_port']), HTTPHandler)
         
-        # Check for HTTPS certificates and wrap server if available
+        # Check for HTTPS certificates and setup SSL context
         cert_file = "/opt/pimic-audio/server.crt"
         key_file = "/opt/pimic-audio/server.key"
         
         if os.path.exists(cert_file) and os.path.exists(key_file):
             try:
                 import ssl
-                context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-                context.load_cert_chain(cert_file, key_file)
-                self.http_server.socket = context.wrap_socket(self.http_server.socket, server_side=True)
+                
+                # Create SSL context
+                ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+                ssl_context.load_cert_chain(cert_file, key_file)
+                
+                # Create HTTPS server by wrapping the socket
+                self.http_server.socket = ssl_context.wrap_socket(
+                    self.http_server.socket,
+                    server_side=True
+                )
+                
                 logger.info(f"🔒 HTTPS enabled on port {CONFIG['web_port']}")
                 print(f"🔒 HTTPS: https://{self.get_server_ip()}:{CONFIG['web_port']}")
+                
             except Exception as e:
-                logger.warning(f"HTTPS setup failed, using HTTP: {e}")
-                print(f"⚠️  HTTPS setup failed, using HTTP: {e}")
+                logger.error(f"HTTPS setup failed: {e}")
+                print(f"⚠️  HTTPS setup failed, falling back to HTTP: {e}")
         else:
             logger.info("📡 HTTP server (no SSL certificates found)")
             print(f"⚠️  HTTP only: Microphone access requires HTTPS in modern browsers")
