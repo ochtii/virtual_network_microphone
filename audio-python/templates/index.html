@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎵 PIMIC Audio Streaming (Pure Python)</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🎵 PIMIC Audio Streaming</h1>
+            <p>Pure Python Network Audio Streaming Service</p>
+            <div class="status">
+                <span id="connectionStatus">🔴 Verbindung...</span>
+                <span id="serverInfo"></span>
+            </div>
+        </header>
+
+        <main>
+            <!-- Stream Control -->
+            <section class="panel">
+                <h2>🎧 Stream Control</h2>
+                <div class="controls">
+                    <div class="control-group">
+                        <label>Audio Quelle:</label>
+                        <select id="audioSource">
+                            <option value="microphone">🎤 Mikrofon</option>
+                            <option value="system">🔊 System Audio</option>
+                            <option value="both">🎵 Beide</option>
+                        </select>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>Bitrate:</label>
+                        <select id="bitrate">
+                            <option value="64">64 kbps</option>
+                            <option value="128" selected>128 kbps</option>
+                            <option value="192">192 kbps</option>
+                            <option value="256">256 kbps</option>
+                            <option value="320">320 kbps</option>
+                        </select>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>Stream Port:</label>
+                        <input type="number" id="streamPort" value="420" min="1024" max="65535">
+                    </div>
+                </div>
+                
+                <div class="stream-controls">
+                    <button id="startStopBtn">
+                        <span>▶️ Stream Starten</span>
+                    </button>
+                    <div id="streamInfo" style="display:none;">
+                        <p><strong>Stream ID:</strong> <span id="currentStreamId">-</span></p>
+                        <p><strong>Port:</strong> <span id="currentStreamPort">-</span></p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Audio Level Meter -->
+            <section class="panel">
+                <h2>📊 Audio Pegel</h2>
+                <div class="meter-container">
+                    <canvas id="audioMeter" width="400" height="100"></canvas>
+                    <div class="db-display">
+                        <span id="dbValue">-∞ dB</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Active Streams -->
+            <section class="panel">
+                <h2>🌐 Aktive Streams</h2>
+                <div id="streamsList">
+                    <p>Keine aktiven Streams</p>
+                </div>
+            </section>
+
+            <!-- Network Info -->
+            <section class="panel">
+                <h2>🌐 Netzwerk</h2>
+                <div id="networkInfo">
+                    <p>Lade Netzwerk-Informationen...</p>
+                </div>
+            </section>
+
+            <!-- Python Info -->
+            <section class="panel">
+                <h2>🐍 Python Service Info</h2>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <strong>🚀 No npm/node dependencies</strong>
+                        <p>Reine Python Standard Library Implementation</p>
+                    </div>
+                    <div class="info-item">
+                        <strong>⚡ Lightweight</strong>
+                        <p>Minimale Ressourcen, Raspberry Pi optimiert</p>
+                    </div>
+                    <div class="info-item">
+                        <strong>🔧 Self-contained</strong>
+                        <p>Alle Features ohne externe Dependencies</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

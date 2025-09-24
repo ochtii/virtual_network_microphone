@@ -1,0 +1,50 @@
+# PIMIC Audio Streaming Service - Python Version
+# Abhängigkeiten für Python Audio Streaming
+
+# Web Framework (standard library)
+# http.server - bereits in Python enthalten
+
+# WebSocket-Alternative (minimale Implementierung)
+# Ersetzt: websockets
+# Implementierung: Eingebauter WebSocket-Handler
+
+# Audio Processing (plattformunabhängige Alternative) 
+# Ersetzt: pyaudio + numpy
+# Implementierung: Standard-Web-Audio-API über Browser
+
+# Network Discovery (standard library)
+# socket, subprocess - bereits in Python enthalten
+
+# Core Dependencies (standard library only):
+# - json
+# - asyncio  
+# - threading
+# - socket
+# - subprocess
+# - http.server
+# - urllib.parse
+# - pathlib
+# - logging
+# - datetime
+# - time
+# - signal
+# - sys
+# - os
+
+print("Python Standard Library Dependencies:")
+print("✓ http.server - Web framework")
+print("✓ socket - Network communication") 
+print("✓ json - Data exchange")
+print("✓ threading - Multi-threading")
+print("✓ subprocess - System commands")
+print("✓ logging - Error tracking")
+print("✓ asyncio - Async operations")
+print("✓ urllib.parse - URL handling")
+print("✓ pathlib - Path operations")
+print("✓ datetime - Time handling")
+
+print("\nOptional Dependencies (Pi-specific):")
+print("? alsa-utils - Audio system (apt-get)")
+print("? pulseaudio - Audio routing (apt-get)")
+
+print("\n🎵 No npm/node dependencies required! 🎵")
