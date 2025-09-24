@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PIMIC WAV Stream Test</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: #222; 
+            color: white; 
+            text-align: center;
+        }
+        .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background: #333;
+            padding: 30px;
+            border-radius: 10px;
+        }
+        h1 { color: #4CAF50; margin-bottom: 30px; }
+        button { 
+            padding: 15px 30px; 
+            margin: 10px; 
+            font-size: 16px; 
+            background: #4CAF50; 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+        }
+        button:hover { background: #45a049; }
+        button:disabled { background: #666; cursor: not-allowed; }
+        audio { 
+            width: 100%; 
+            margin: 20px 0; 
+            background: #444;
+        }
+        .info {
+            background: #444;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            text-align: left;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success { background: rgba(76, 175, 80, 0.3); }
+        .error { background: rgba(244, 67, 54, 0.3); }
+        .info-status { background: rgba(33, 150, 243, 0.3); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 PIMIC WAV Stream Test</h1>
+        
+        <div class="info">
+            <h3>Available Stream Formats:</h3>
+            <div id="streamInfo">Loading...</div>
+        </div>
+        
+        <div>
+            <h3>🎵 Audio Player</h3>
+            <audio id="audioPlayer" controls preload="none">
+                Your browser doesn't support audio playback
+            </audio>
+        </div>
+        
+        <div>
+            <button onclick="testRawStream()">Test Raw Stream (.../stream)</button>
+            <button onclick="testWavStream()">Test WAV Stream (.../wav)</button>
+            <button onclick="testChunkedAudio()">Test Chunked Audio (.../audio)</button>
+        </div>
+        
+        <div>
+            <button onclick="playTestTone()">🔊 Test Browser Audio</button>
+            <button onclick="refreshInfo()">🔄 Refresh Info</button>
+        </div>
+        
+        <div id="status" class="status info-status">
+            Ready to test audio streams
+        </div>
+    </div>
+
+    <script>
+        const audio = document.getElementById('audioPlayer');
+        let clientIP = '192.168.188.28'; // Default fallback
+        
+        function updateStatus(message, type = 'info-status') {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+            console.log(message);
+        }
+        
+        async function loadStreamInfo() {
+            try {
+                const response = await fetch('/api/streams');
+                const data = await response.json();
+                
+                if (data.success && data.streams.length > 0) {
+                    const stream = data.streams[0];
+                    clientIP = stream.client_ip;
+                    
+                    document.getElementById('streamInfo').innerHTML = `
+                        <strong>Active Client:</strong> ${stream.client_ip}<br>
+                        <strong>Stream Status:</strong> ${stream.is_active ? '✅ Active' : '❌ Inactive'}<br>
+                        <strong>Raw Stream:</strong> https://${window.location.host}/client/${stream.client_ip}/stream<br>
+                        <strong>WAV Stream:</strong> https://${window.location.host}/client/${stream.client_ip}/wav<br>
+                        <strong>Chunked Audio:</strong> https://${window.location.host}/client/${stream.client_ip}/audio
+                    `;
+                    
+                    updateStatus(`Found active stream for ${stream.client_ip}`, 'success');
+                    return true;
+                } else {
+                    document.getElementById('streamInfo').innerHTML = '❌ No active streams found';
+                    updateStatus('No active audio streams found', 'error');
+                    return false;
+                }
+            } catch (error) {
+                document.getElementById('streamInfo').innerHTML = `❌ Error: ${error.message}`;
+                updateStatus(`Error loading stream info: ${error.message}`, 'error');
+                return false;
+            }
+        }
+        
+        function testRawStream() {
+            const url = `https://${window.location.host}/client/${clientIP}/stream`;
+            updateStatus(`Testing raw stream: ${url}`, 'info-status');
+            
+            audio.src = url;
+            audio.load();
+            
+            setupAudioEvents('Raw Stream');
+            
+            audio.play().catch(error => {
+                updateStatus(`Raw stream playback failed: ${error.message}`, 'error');
+            });
+        }
+        
+        function testWavStream() {
+            const url = `https://${window.location.host}/client/${clientIP}/wav`;
+            updateStatus(`Testing WAV stream: ${url}`, 'info-status');
+            
+            audio.src = url;
+            audio.load();
+            
+            setupAudioEvents('WAV Stream');
+            
+            audio.play().catch(error => {
+                updateStatus(`WAV stream playback failed: ${error.message}`, 'error');
+            });
+        }
+        
+        function testChunkedAudio() {
+            const url = `https://${window.location.host}/client/${clientIP}/audio`;
+            updateStatus(`Testing chunked audio: ${url}`, 'info-status');
+            
+            audio.src = url;
+            audio.load();
+            
+            setupAudioEvents('Chunked Audio');
+            
+            audio.play().catch(error => {
+                updateStatus(`Chunked audio playback failed: ${error.message}`, 'error');
+            });
+        }
+        
+        function setupAudioEvents(type) {
+            audio.onloadstart = () => updateStatus(`${type}: Loading started`, 'info-status');
+            audio.oncanplay = () => updateStatus(`${type}: Ready to play`, 'success');
+            audio.onplay = () => updateStatus(`${type}: Playback started`, 'success');
+            audio.onpause = () => updateStatus(`${type}: Playback paused`, 'info-status');
+            audio.onerror = (e) => {
+                const errorMsg = e.target.error ? `Error ${e.target.error.code}: ${e.target.error.message}` : 'Unknown error';
+                updateStatus(`${type}: ${errorMsg}`, 'error');
+            };
+            audio.onstalled = () => updateStatus(`${type}: Playback stalled`, 'error');
+            audio.onwaiting = () => updateStatus(`${type}: Waiting for data`, 'info-status');
+            audio.onended = () => updateStatus(`${type}: Playback ended`, 'info-status');
+        }
+        
+        function playTestTone() {
+            // Generate a test tone to verify browser audio is working
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 440; // A4 note
+            gainNode.gain.value = 0.1; // Low volume
+            
+            oscillator.start();
+            setTimeout(() => {
+                oscillator.stop();
+                updateStatus('Test tone played - browser audio is working', 'success');
+            }, 1000);
+            
+            updateStatus('Playing test tone (440Hz for 1 second)', 'info-status');
+        }
+        
+        function refreshInfo() {
+            loadStreamInfo();
+        }
+        
+        // Initialize on page load
+        window.onload = () => {
+            loadStreamInfo();
+            updateStatus('PIMIC WAV Stream Test ready', 'info-status');
+        };
+    </script>
+</body>
+</html>

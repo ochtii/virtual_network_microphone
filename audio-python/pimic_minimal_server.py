@@ -475,6 +475,8 @@ class HTTPHandler(SimpleHTTPRequestHandler):
             self.serve_client_stream()
         elif self.path.startswith('/client/') and self.path.endswith('/audio'):
             self.serve_client_audio_player()
+        elif self.path.startswith('/client/') and self.path.endswith('/wav'):
+            self.serve_client_wav_stream()
         elif self.path == '/ws/audio-stream' and 'upgrade' in self.headers.get('Connection', '').lower():
             self.handle_audio_websocket_upgrade()
         elif self.path == '/ws' or 'upgrade' in self.headers.get('Connection', '').lower():
@@ -614,6 +616,64 @@ class HTTPHandler(SimpleHTTPRequestHandler):
                 
         except Exception as e:
             logger.error(f"Client audio serving error: {e}")
+            self.send_error(500)
+    
+    def serve_client_wav_stream(self):
+        """Serve audio stream as simple WAV header + raw data for browser compatibility"""
+        try:
+            # Parse client IP from URL: /client/192.168.1.100/wav
+            path_parts = self.path.split('/')
+            if len(path_parts) >= 3:
+                client_ip = path_parts[2]
+                
+                logger.info(f"Serving WAV stream for client {client_ip}")
+                
+                # Get audio data
+                audio_data = AudioStreamHandler().get_audio_stream(client_ip)
+                
+                if audio_data and len(audio_data) > 0:
+                    # Create minimal WAV header for PCM data
+                    # This is a simplified approach - real WebM->WAV conversion would be more complex
+                    sample_rate = 48000  # Assume 48kHz
+                    channels = 1  # Mono
+                    bits_per_sample = 16
+                    
+                    # WAV header (44 bytes)
+                    wav_header = bytearray(44)
+                    wav_header[0:4] = b'RIFF'
+                    wav_header[4:8] = (len(audio_data) + 36).to_bytes(4, 'little')  # File size - 8
+                    wav_header[8:12] = b'WAVE'
+                    wav_header[12:16] = b'fmt '
+                    wav_header[16:20] = (16).to_bytes(4, 'little')  # Subchunk1Size
+                    wav_header[20:22] = (1).to_bytes(2, 'little')   # AudioFormat (PCM)
+                    wav_header[22:24] = channels.to_bytes(2, 'little')  # NumChannels
+                    wav_header[24:28] = sample_rate.to_bytes(4, 'little')  # SampleRate
+                    wav_header[28:32] = (sample_rate * channels * bits_per_sample // 8).to_bytes(4, 'little')  # ByteRate
+                    wav_header[32:34] = (channels * bits_per_sample // 8).to_bytes(2, 'little')  # BlockAlign
+                    wav_header[34:36] = bits_per_sample.to_bytes(2, 'little')  # BitsPerSample
+                    wav_header[36:40] = b'data'
+                    wav_header[40:44] = len(audio_data).to_bytes(4, 'little')  # Subchunk2Size
+                    
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'audio/wav')
+                    self.send_header('Access-Control-Allow-Origin', '*')
+                    self.send_header('Cache-Control', 'no-cache')
+                    self.send_header('Content-Length', str(44 + len(audio_data)))
+                    self.end_headers()
+                    
+                    # Send WAV header + audio data
+                    self.wfile.write(wav_header)
+                    self.wfile.write(audio_data)
+                else:
+                    # No data available
+                    self.send_response(204)  # No Content
+                    self.send_header('Access-Control-Allow-Origin', '*')
+                    self.end_headers()
+            else:
+                self.send_error(400, "Invalid WAV stream URL")
+                
+        except Exception as e:
+            logger.error(f"WAV stream serving error: {e}")
             self.send_error(500)
     
     def serve_events_stream(self):
