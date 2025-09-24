@@ -1135,13 +1135,38 @@
         // RTP Stream Functions
         async function startRTPStream(clientIP, playerId) {
             try {
-                // Always use HTTPS server for RTP operations since RTP streamer runs there
-                const rtpBaseUrl = 'https://192.168.188.90:6969';
-                const response = await fetch(`${rtpBaseUrl}/api/rtp/start`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ client_ip: clientIP })
-                });
+                // Try HTTPS first, then fallback to HTTP if needed
+                let rtpBaseUrl = 'https://192.168.188.90:6969';
+                let response;
+                
+                try {
+                    response = await fetch(`${rtpBaseUrl}/api/rtp/start`, {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ client_ip: clientIP })
+                    });
+                } catch (httpsError) {
+                    console.warn('HTTPS RTP failed, trying HTTP:', httpsError);
+                    rtpBaseUrl = 'http://192.168.188.90:8081';
+                    response = await fetch(`${rtpBaseUrl}/api/rtp/start`, {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ client_ip: clientIP })
+                    });
+                }
+                
+                // Check if response is actually JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const textResponse = await response.text();
+                    throw new Error(`Server returned ${contentType}: ${textResponse.substring(0, 100)}`);
+                }
                 
                 const result = await response.json();
                 const statusElement = document.getElementById(`rtpStatus_${playerId}`);

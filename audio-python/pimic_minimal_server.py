@@ -566,12 +566,16 @@ class AudioStreamHandler:
         client_data = self.audio_clients[client_ip]
         buffer = client_data['buffer']
         
-        if len(buffer) < chunk_size:
+        # Use available buffer size if less than requested chunk_size
+        # This prevents RTP from waiting for exact chunk sizes
+        if len(buffer) == 0:
             return None
         
+        actual_chunk_size = min(len(buffer), chunk_size)
+        
         # Extract chunk and update buffer
-        chunk = buffer[:chunk_size]
-        client_data['buffer'] = buffer[chunk_size:]
+        chunk = buffer[:actual_chunk_size]
+        client_data['buffer'] = buffer[actual_chunk_size:]
         
         return chunk
     
@@ -737,7 +741,13 @@ class HTTPHandler(SimpleHTTPRequestHandler):
         elif self.path == '/health':
             self.serve_health()
         elif self.path == '/api/rtp/streams':
-            self.serve_rtp_streams_api()
+            if hasattr(self.server, 'server_port') and self.server.server_port == 8081:
+                self.send_json_response({
+                    'success': False, 
+                    'error': 'RTP functions require HTTPS server. Please use https://192.168.188.90:6969/api/rtp/streams'
+                })
+            else:
+                self.serve_rtp_streams_api()
         elif self.path == '/api/audio/levels':
             self.serve_audio_levels_api()
         elif self.path.startswith('/static/'):
@@ -768,9 +778,22 @@ class HTTPHandler(SimpleHTTPRequestHandler):
         elif self.path == '/api/audio/upload':
             self.handle_audio_upload()
         elif self.path == '/api/rtp/start':
-            self.handle_rtp_start()
+            # Check if this is the HTTPS server (port 6969) or HTTP server (port 8081)
+            if hasattr(self.server, 'server_port') and self.server.server_port == 8081:
+                self.send_json_response({
+                    'success': False, 
+                    'error': 'RTP functions require HTTPS server. Please use https://192.168.188.90:6969/api/rtp/start'
+                })
+            else:
+                self.handle_rtp_start()
         elif self.path == '/api/rtp/stop':
-            self.handle_rtp_stop()
+            if hasattr(self.server, 'server_port') and self.server.server_port == 8081:
+                self.send_json_response({
+                    'success': False, 
+                    'error': 'RTP functions require HTTPS server. Please use https://192.168.188.90:6969/api/rtp/stop'
+                })
+            else:
+                self.handle_rtp_stop()
         else:
             self.send_error(404)
     
