@@ -1666,6 +1666,10 @@ class PimicAudioServer:
                 ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
                 ssl_context.load_cert_chain(str(cert_file), str(key_file))
                 
+                # Configure SSL context for better compatibility
+                ssl_context.minimum_version = ssl.TLSVersion.TLSv1_2
+                ssl_context.set_ciphers('ECDHE+AESGCM:ECDHE+CHACHA20:DHE+AESGCM:DHE+CHACHA20:!aNULL:!MD5:!DSS')
+                
                 # Create HTTPS server by wrapping the socket
                 self.http_server.socket = ssl_context.wrap_socket(
                     self.http_server.socket,
