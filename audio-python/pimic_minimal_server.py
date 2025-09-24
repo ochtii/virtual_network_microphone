@@ -469,9 +469,15 @@ class HTTPHandler(SimpleHTTPRequestHandler):
     def handle_audio_websocket_upgrade(self):
         """Handle audio streaming WebSocket upgrade"""
         try:
+            logger.info(f"Audio WebSocket upgrade request from {self.client_address[0]}")
+            logger.info(f"Headers: {dict(self.headers)}")
             if self.websocket_handler.handle_websocket_handshake(self):
+                logger.info("Audio WebSocket handshake successful")
                 # Hand over to audio stream handler
                 AudioStreamHandler().handle_audio_websocket(self)
+            else:
+                logger.error("Audio WebSocket handshake failed")
+                self.send_error(400, "WebSocket handshake failed")
         except Exception as e:
             logger.error(f"Audio WebSocket upgrade failed: {e}")
             self.send_error(500)
