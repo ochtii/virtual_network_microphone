@@ -55,20 +55,22 @@ body.weed-theme .card::before {
     100% { filter: brightness(1.1) hue-rotate(10deg); }
 }
 
+/* Schwebende Icons über den ganzen Bildschirm verteilt */
 body.weed-theme::before {
     content: "";
     position: fixed;
-    top: 10px;
-    right: 10px;
-    width: 28px;
-    height: 28px;
+    top: 5%;
+    right: 8%;
+    width: 24px;
+    height: 24px;
     background-image: url('weed-leaf.svg');
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
     z-index: 1001;
-    animation: float 2s ease-in-out infinite;
+    animation: float 3s ease-in-out infinite;
     filter: brightness(1.2) saturate(1.3);
+    opacity: 0.7;
 }
 
 body.weed-theme::after {
@@ -89,8 +91,139 @@ body.weed-theme::after {
 }
 
 @keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-10px); }
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-10px) rotate(5deg); }
+}
+
+/* Zusätzliche schwebende Icons für das Weed Theme */
+body.weed-theme .floating-leaf-1 {
+    position: fixed;
+    top: 15%;
+    left: 12%;
+    width: 20px;
+    height: 20px;
+    background-image: url('weed-leaf.svg');
+    background-size: contain;
+    background-repeat: no-repeat;
+    z-index: 1000;
+    animation: float 4s ease-in-out infinite;
+    filter: brightness(1.1) saturate(1.2);
+    opacity: 0.6;
+    pointer-events: none;
+    display: none; /* Standardmäßig versteckt */
+}
+
+body.weed-theme .floating-leaf-2 {
+    position: fixed;
+    top: 25%;
+    right: 15%;
+    width: 18px;
+    height: 18px;
+    background-image: url('weed-leaf2.svg');
+    background-size: contain;
+    background-repeat: no-repeat;
+    z-index: 1000;
+    animation: float 3.5s ease-in-out infinite reverse;
+    filter: brightness(1.0) saturate(1.1) hue-rotate(20deg);
+    opacity: 0.5;
+    pointer-events: none;
+    display: none;
+}
+
+body.weed-theme .floating-leaf-3 {
+    position: fixed;
+    top: 45%;
+    left: 8%;
+    width: 22px;
+    height: 22px;
+    background-image: url('weed-leaf.svg');
+    background-size: contain;
+    background-repeat: no-repeat;
+    z-index: 1000;
+    animation: float 4.5s ease-in-out infinite;
+    filter: brightness(1.3) saturate(1.4) hue-rotate(-10deg);
+    opacity: 0.7;
+    pointer-events: none;
+    display: none;
+}
+
+body.weed-theme .floating-leaf-4 {
+    position: fixed;
+    top: 65%;
+    right: 20%;
+    width: 16px;
+    height: 16px;
+    background-image: url('weed-leaf2.svg');
+    background-size: contain;
+    background-repeat: no-repeat;
+    z-index: 1000;
+    animation: float 3s ease-in-out infinite;
+    filter: brightness(0.9) saturate(1.0) hue-rotate(30deg);
+    opacity: 0.4;
+    pointer-events: none;
+    display: none;
+}
+
+body.weed-theme .floating-leaf-5 {
+    position: fixed;
+    top: 80%;
+    left: 18%;
+    width: 24px;
+    height: 24px;
+    background-image: url('weed-leaf.svg');
+    background-size: contain;
+    background-repeat: no-repeat;
+    z-index: 1000;
+    animation: float 2.8s ease-in-out infinite reverse;
+    filter: brightness(1.2) saturate(1.3) hue-rotate(15deg);
+    opacity: 0.6;
+    pointer-events: none;
+    display: none;
+}
+
+body.weed-theme .floating-leaf-6 {
+    position: fixed;
+    top: 35%;
+    left: 85%;
+    width: 19px;
+    height: 19px;
+    background-image: url('weed-leaf2.svg');
+    background-size: contain;
+    background-repeat: no-repeat;
+    z-index: 1000;
+    animation: float 3.8s ease-in-out infinite;
+    filter: brightness(1.1) saturate(1.2) hue-rotate(-15deg);
+    opacity: 0.5;
+    pointer-events: none;
+    display: none;
+}
+
+body.weed-theme .floating-leaf-7 {
+    position: fixed;
+    top: 55%;
+    left: 75%;
+    width: 21px;
+    height: 21px;
+    background-image: url('weed-leaf.svg');
+    background-size: contain;
+    background-repeat: no-repeat;
+    z-index: 1000;
+    animation: float 4.2s ease-in-out infinite reverse;
+    filter: brightness(1.0) saturate(1.1) hue-rotate(25deg);
+    opacity: 0.6;
+    pointer-events: none;
+    display: none;
+}
+
+/* Schwebende Leafs nur im Weed Theme sichtbar */
+body.weed-theme .floating-leaf-1,
+body.weed-theme .floating-leaf-2,
+body.weed-theme .floating-leaf-3,
+body.weed-theme .floating-leaf-4,
+body.weed-theme .floating-leaf-5,
+body.weed-theme .floating-leaf-6,
+body.weed-theme .floating-leaf-7 {
+    display: block !important;
 }
 
 /* Acid Theme */
