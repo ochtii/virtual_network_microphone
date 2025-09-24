@@ -45,6 +45,9 @@ connected_clients: Set[str] = set()  # Changed from websocket objects to client 
 audio_levels: Dict[str, dict] = {}
 server_running = True
 
+# Global audio handler instance
+global_audio_handler = None
+
 # Logging setup
 logging.basicConfig(
     level=logging.INFO,
@@ -534,10 +537,13 @@ class HTTPHandler(SimpleHTTPRequestHandler):
                 
                 logger.info(f"Serving stream for client {client_ip}")
                 
-                # Get audio data from WebSocket buffer
-                audio_data = AudioStreamHandler().get_audio_stream(client_ip)
+                # Get audio data from HTTP audio buffer
+                global global_audio_handler
+                if global_audio_handler is None:
+                    global_audio_handler = AudioStreamHandler()
+                audio_data = global_audio_handler.get_audio_stream(client_ip)
                 
-                if audio_data:
+                if audio_data and len(audio_data) > 0:
                     self.send_response(200)
                     self.send_header('Content-Type', 'audio/webm')
                     self.send_header('Access-Control-Allow-Origin', '*')
@@ -546,11 +552,13 @@ class HTTPHandler(SimpleHTTPRequestHandler):
                     self.end_headers()
                     
                     self.wfile.write(audio_data)
+                    logger.info(f"Served {len(audio_data)} bytes of audio for client {client_ip}")
                 else:
                     # No data available, send minimal response
                     self.send_response(204)  # No Content
                     self.send_header('Access-Control-Allow-Origin', '*')
                     self.end_headers()
+                    logger.info(f"No audio data available for client {client_ip}")
             else:
                 self.send_error(400, "Invalid stream URL")
                 
@@ -577,7 +585,10 @@ class HTTPHandler(SimpleHTTPRequestHandler):
                 self.end_headers()
                 
                 # Stream audio data in chunks
-                audio_handler = AudioStreamHandler()
+                global global_audio_handler
+                if global_audio_handler is None:
+                    global_audio_handler = AudioStreamHandler()
+                audio_handler = global_audio_handler
                 chunk_size = 4096  # 4KB chunks
                 timeout = 30  # 30 seconds timeout
                 start_time = time.time()
@@ -629,7 +640,10 @@ class HTTPHandler(SimpleHTTPRequestHandler):
                 logger.info(f"Serving WAV stream for client {client_ip}")
                 
                 # Get audio data
-                audio_data = AudioStreamHandler().get_audio_stream(client_ip)
+                global global_audio_handler
+                if global_audio_handler is None:
+                    global_audio_handler = AudioStreamHandler()
+                audio_data = global_audio_handler.get_audio_stream(client_ip)
                 
                 if audio_data and len(audio_data) > 0:
                     # Create minimal WAV header for PCM data
@@ -962,7 +976,10 @@ class HTTPHandler(SimpleHTTPRequestHandler):
             
             if len(audio_data) > 0:
                 # Store audio data in AudioStreamHandler
-                AudioStreamHandler().handle_http_audio_data(audio_data, client_ip)
+                global global_audio_handler
+                if global_audio_handler is None:
+                    global_audio_handler = AudioStreamHandler()
+                global_audio_handler.handle_http_audio_data(audio_data, client_ip)
                 logger.info(f"HTTP audio upload from {client_ip}: {len(audio_data)} bytes")
                 
                 self.send_response(200)
