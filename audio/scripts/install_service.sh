@@ -9,7 +9,7 @@ echo "🎵 PIMIC Audio Streaming - Installation"
 echo "======================================"
 
 # Configuration
-USER="pi"
+USER="ochtii"
 SERVICE_DIR="/home/${USER}/pimic/audio"
 LOG_DIR="/home/${USER}/pimic/logs"
 SYSTEMD_SERVICE="pimic-audio.service"

@@ -3,7 +3,7 @@ module.exports = {
     {
       name: 'pimic-audio-streaming',
       script: 'server.js',
-      cwd: '/home/pi/pimic/audio',
+      cwd: '/home/ochtii/pimic/audio',
       instances: 1,
       exec_mode: 'fork',
       
@@ -17,9 +17,9 @@ module.exports = {
       },
       
       // Logging
-      log_file: '/home/pi/pimic/logs/audio-combined.log',
-      out_file: '/home/pi/pimic/logs/audio-out.log',
-      error_file: '/home/pi/pimic/logs/audio-error.log',
+      log_file: '/home/ochtii/pimic/logs/audio-combined.log',
+      out_file: '/home/ochtii/pimic/logs/audio-out.log',
+      error_file: '/home/ochtii/pimic/logs/audio-error.log',
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
       merge_logs: true,
       
@@ -48,13 +48,13 @@ module.exports = {
   // Deployment configuration
   deploy: {
     production: {
-      user: 'pi',
+      user: 'ochtii',
       host: 'raspberrypi.local',
       ref: 'origin/master',
       repo: 'https://github.com/your-repo/pimic.git',
-      path: '/home/pi/pimic',
+      path: '/home/ochtii/pimic',
       'post-deploy': 'cd audio && npm install --production && pm2 reload ecosystem.config.js --env production',
-      'pre-setup': 'mkdir -p /home/pi/pimic/logs'
+      'pre-setup': 'mkdir -p /home/ochtii/pimic/logs'
     }
   }
 };

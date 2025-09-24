@@ -3,7 +3,7 @@
 # PIMIC Audio Streaming - Management Scripts
 # Quick management commands for the audio streaming service
 
-SERVICE_DIR="/home/pi/pimic/audio"
+SERVICE_DIR="/home/ochtii/pimic/audio"
 SERVICE_NAME="pimic-audio"
 PM2_APP="pimic-audio-streaming"
 
@@ -144,8 +144,8 @@ case "${1:-status}" in
         fi
         
         # Recent errors
-        if [ -f "/home/pi/pimic/logs/audio-service-error.log" ]; then
-            ERROR_COUNT=$(tail -n 100 /home/pi/pimic/logs/audio-service-error.log | wc -l)
+        if [ -f "/home/ochtii/pimic/logs/audio-service-error.log" ]; then
+            ERROR_COUNT=$(tail -n 100 /home/ochtii/pimic/logs/audio-service-error.log | wc -l)
             if [ "$ERROR_COUNT" -gt 0 ]; then
                 print_warning "${ERROR_COUNT} recent errors found"
             fi
@@ -159,16 +159,16 @@ case "${1:-status}" in
         
         # Service logs
         echo -e "${YELLOW}📋 Service Logs (last 20 lines):${NC}"
-        if [ -f "/home/pi/pimic/logs/audio-service.log" ]; then
-            tail -n 20 /home/pi/pimic/logs/audio-service.log
+        if [ -f "/home/ochtii/pimic/logs/audio-service.log" ]; then
+            tail -n 20 /home/ochtii/pimic/logs/audio-service.log
         else
             print_warning "Service log file not found"
         fi
         
         echo ""
         echo -e "${YELLOW}❌ Error Logs (last 10 lines):${NC}"
-        if [ -f "/home/pi/pimic/logs/audio-service-error.log" ]; then
-            tail -n 10 /home/pi/pimic/logs/audio-service-error.log
+        if [ -f "/home/ochtii/pimic/logs/audio-service-error.log" ]; then
+            tail -n 10 /home/ochtii/pimic/logs/audio-service-error.log
         else
             print_status "No error logs found"
         fi
