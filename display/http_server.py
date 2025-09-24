@@ -14,6 +14,7 @@ import random
 import time
 import threading
 import subprocess
+import signal
 # psutil wird dynamisch importiert wo benötigt
 
 class APIHandler(http.server.SimpleHTTPRequestHandler):
@@ -565,10 +566,87 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
         """Überschreibe Log-Format für sauberere Ausgabe"""
         print(f"[{self.address_string()}] {format % args}")
 
+def kill_port_processes(port):
+    """Killt alle Prozesse die den angegebenen Port verwenden"""
+    try:
+        print(f"Prüfe Port {port} auf blockierende Prozesse...")
+        
+        # Methode 1: Mit netstat und kill
+        try:
+            result = subprocess.run(['netstat', '-tulpn'], capture_output=True, text=True, timeout=10)
+            if result.returncode == 0:
+                for line in result.stdout.split('\n'):
+                    if f':{port}' in line and 'LISTEN' in line:
+                        parts = line.split()
+                        if len(parts) >= 7:
+                            pid_info = parts[6]  # Format: pid/process_name
+                            if '/' in pid_info and pid_info.split('/')[0].isdigit():
+                                pid = int(pid_info.split('/')[0])
+                                process_name = pid_info.split('/')[1]
+                                print(f"Stoppe Prozess {process_name} (PID: {pid}) auf Port {port}")
+                                try:
+                                    os.kill(pid, signal.SIGTERM)
+                                    time.sleep(1)
+                                    # Falls SIGTERM nicht reicht, versuche SIGKILL
+                                    try:
+                                        os.kill(pid, 0)  # Test ob Prozess noch läuft
+                                        os.kill(pid, signal.SIGKILL)
+                                    except ProcessLookupError:
+                                        pass  # Prozess bereits beendet
+                                except ProcessLookupError:
+                                    pass  # Prozess bereits beendet
+                                except PermissionError:
+                                    print(f"Keine Berechtigung zum Stoppen von PID {pid}")
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            pass
+        
+        # Methode 2: Mit fuser falls verfügbar
+        try:
+            result = subprocess.run(['fuser', '-k', f'{port}/tcp'], 
+                                  capture_output=True, text=True, timeout=5)
+            if result.returncode == 0:
+                print(f"Port {port} mit fuser freigeräumt")
+        except FileNotFoundError:
+            pass  # fuser nicht verfügbar
+        
+        # Methode 3: Mit lsof falls verfügbar 
+        try:
+            result = subprocess.run(['lsof', '-ti', f':{port}'], 
+                                  capture_output=True, text=True, timeout=5)
+            if result.returncode == 0:
+                pids = result.stdout.strip().split('\n')
+                for pid in pids:
+                    if pid.isdigit():
+                        print(f"Stoppe PID {pid} auf Port {port}")
+                        try:
+                            os.kill(int(pid), signal.SIGTERM)
+                            time.sleep(1)
+                            try:
+                                os.kill(int(pid), 0)
+                                os.kill(int(pid), signal.SIGKILL)
+                            except ProcessLookupError:
+                                pass
+                        except ProcessLookupError:
+                            pass
+                        except PermissionError:
+                            print(f"Keine Berechtigung zum Stoppen von PID {pid}")
+        except FileNotFoundError:
+            pass  # lsof nicht verfügbar
+        
+        # Kurz warten bevor Server startet
+        time.sleep(2)
+        print(f"Port {port} sollte jetzt frei sein")
+        
+    except Exception as e:
+        print(f"Warnung: Fehler beim Freimachen von Port {port}: {e}")
+
 def start_server(port=3000, host="0.0.0.0"):
     """Startet den HTTP Server"""
     global start_time
     start_time = time.time()
+    
+    # Port vor dem Start freimachen
+    kill_port_processes(port)
     
     # Gehe zum display Verzeichnis
     script_dir = os.path.dirname(os.path.abspath(__file__))
