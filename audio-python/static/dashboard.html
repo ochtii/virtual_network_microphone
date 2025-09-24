@@ -399,6 +399,109 @@
             cursor: pointer;
         }
         
+        /* Microphone Selection Styles */
+        .microphone-section {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .microphone-section h3 {
+            color: #FFE66D;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .mic-source-selection {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .source-option {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 10px 15px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+        
+        .source-option:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+        
+        .source-option.active {
+            background: linear-gradient(45deg, #4ECDC4, #FFE66D);
+            border-color: #4ECDC4;
+            box-shadow: 0 4px 15px rgba(78, 205, 196, 0.3);
+        }
+        
+        .microphone-list {
+            display: none;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        
+        .microphone-list.active {
+            display: block;
+        }
+        
+        .microphone-list select {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            padding: 10px;
+            color: white;
+            font-size: 14px;
+        }
+        
+        .microphone-list select option {
+            background: #2a5298;
+            color: white;
+        }
+        
+        .mic-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .mic-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9em;
+        }
+        
+        .mic-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #FF6B6B;
+            transition: all 0.3s ease;
+        }
+        
+        .mic-indicator.active {
+            background: #4ECDC4;
+            box-shadow: 0 0 10px rgba(78, 205, 196, 0.5);
+        }
+        
         @media (max-width: 768px) {
             .streams-container {
                 grid-template-columns: 1fr;
@@ -411,6 +514,11 @@
             
             .control-buttons {
                 flex-direction: column;
+            }
+            
+            .mic-source-selection {
+                flex-direction: column;
+                gap: 10px;
             }
         }
     </style>
@@ -430,6 +538,34 @@
             </div>
             <div class="info-item">
                 <span>Letztes Update:</span> <span id="lastUpdate">-</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Microphone Source Selection -->
+    <div class="microphone-section">
+        <h3>🎤 Audio-Quelle</h3>
+        <div class="mic-source-selection">
+            <div class="source-option active" data-source="network" onclick="selectAudioSource('network')">
+                📡 Netzwerk-Streams
+            </div>
+            <div class="source-option" data-source="microphone" onclick="selectAudioSource('microphone')">
+                🎤 Lokales Mikrofon
+            </div>
+        </div>
+        
+        <div id="microphoneList" class="microphone-list">
+            <label for="microphoneSelect">Verfügbare Mikrofone:</label>
+            <select id="microphoneSelect">
+                <option value="">Mikrofon wird geladen...</option>
+            </select>
+            <div class="mic-controls">
+                <button class="btn" onclick="startMicrophoneCapture()" id="startMicBtn">🎤 Start</button>
+                <button class="btn" onclick="stopMicrophoneCapture()" id="stopMicBtn" disabled>⏹️ Stop</button>
+                <div class="mic-status">
+                    <div class="mic-indicator" id="micIndicator"></div>
+                    <span id="micStatusText">Bereit</span>
+                </div>
             </div>
         </div>
     </div>
@@ -1407,6 +1543,143 @@
             ctx.shadowBlur = 0;
         }
 
+        // Microphone Source Management
+        let currentAudioSource = 'network';
+        let microphoneStream = null;
+        let microphoneContext = null;
+        let microphoneRecorder = null;
+        
+        async function initializeMicrophones() {
+            try {
+                // Request microphone permissions first
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                stream.getTracks().forEach(track => track.stop()); // Stop the test stream
+                
+                // Now enumerate devices
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const microphones = devices.filter(device => device.kind === 'audioinput');
+                
+                const select = document.getElementById('microphoneSelect');
+                select.innerHTML = '<option value="">Mikrofon auswählen...</option>';
+                
+                microphones.forEach(mic => {
+                    const option = document.createElement('option');
+                    option.value = mic.deviceId;
+                    option.textContent = mic.label || `Mikrofon ${microphones.indexOf(mic) + 1}`;
+                    select.appendChild(option);
+                });
+                
+                console.log(`Gefundene Mikrofone: ${microphones.length}`);
+                
+            } catch (error) {
+                console.error('Fehler beim Laden der Mikrofone:', error);
+                const select = document.getElementById('microphoneSelect');
+                select.innerHTML = '<option value="">Keine Mikrofone verfügbar (Berechtigung verweigert)</option>';
+                updateMicrophoneStatus('Fehler: ' + error.message, false);
+            }
+        }
+        
+        function selectAudioSource(source) {
+            currentAudioSource = source;
+            
+            // Update UI
+            document.querySelectorAll('.source-option').forEach(option => {
+                option.classList.remove('active');
+            });
+            document.querySelector(`[data-source="${source}"]`).classList.add('active');
+            
+            const micList = document.getElementById('microphoneList');
+            if (source === 'microphone') {
+                micList.classList.add('active');
+                if (!document.getElementById('microphoneSelect').options.length || 
+                    document.getElementById('microphoneSelect').options[0].textContent.includes('wird geladen')) {
+                    initializeMicrophones();
+                }
+            } else {
+                micList.classList.remove('active');
+                stopMicrophoneCapture();
+            }
+        }
+        
+        async function startMicrophoneCapture() {
+            const deviceId = document.getElementById('microphoneSelect').value;
+            if (!deviceId) {
+                alert('Bitte wähle zuerst ein Mikrofon aus.');
+                return;
+            }
+            
+            try {
+                updateMicrophoneStatus('Verbinde...', false);
+                
+                // Get microphone stream
+                const constraints = {
+                    audio: {
+                        deviceId: { exact: deviceId },
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    }
+                };
+                
+                microphoneStream = await navigator.mediaDevices.getUserMedia(constraints);
+                
+                // Create audio context
+                microphoneContext = new (window.AudioContext || window.webkitAudioContext)();
+                const source = microphoneContext.createMediaStreamSource(microphoneStream);
+                
+                // Create recorder (simplified - would need to implement actual streaming)
+                updateMicrophoneStatus('Aktiv - Streaming nicht implementiert', true);
+                
+                // Enable/disable buttons
+                document.getElementById('startMicBtn').disabled = true;
+                document.getElementById('stopMicBtn').disabled = false;
+                
+                console.log('Mikrofon-Capture gestartet');
+                
+                // TODO: Implement actual audio streaming to server
+                // This would require implementing WebRTC or WebSocket streaming
+                
+            } catch (error) {
+                console.error('Fehler beim Mikrofon-Start:', error);
+                updateMicrophoneStatus('Fehler: ' + error.message, false);
+                alert('Fehler beim Starten des Mikrofons: ' + error.message);
+            }
+        }
+        
+        function stopMicrophoneCapture() {
+            if (microphoneStream) {
+                microphoneStream.getTracks().forEach(track => track.stop());
+                microphoneStream = null;
+            }
+            
+            if (microphoneContext) {
+                microphoneContext.close();
+                microphoneContext = null;
+            }
+            
+            updateMicrophoneStatus('Bereit', false);
+            
+            // Enable/disable buttons
+            document.getElementById('startMicBtn').disabled = false;
+            document.getElementById('stopMicBtn').disabled = true;
+            
+            console.log('Mikrofon-Capture gestoppt');
+        }
+        
+        function updateMicrophoneStatus(text, isActive) {
+            const statusText = document.getElementById('micStatusText');
+            const indicator = document.getElementById('micIndicator');
+            
+            if (statusText) statusText.textContent = text;
+            if (indicator) {
+                if (isActive) {
+                    indicator.classList.add('active');
+                } else {
+                    indicator.classList.remove('active');
+                }
+            }
+        }
+
         // Initialize dashboard when page loads
         document.addEventListener('DOMContentLoaded', () => {
             initDashboard();
@@ -1421,6 +1694,9 @@
             
             // Stop soundwaves
             stopLiveSoundwaves();
+            
+            // Stop microphone capture
+            stopMicrophoneCapture();
             
             // Cleanup audio contexts
             audioContexts.forEach((context, playerId) => {
