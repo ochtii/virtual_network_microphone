@@ -785,6 +785,8 @@ class HTTPHandler(SimpleHTTPRequestHandler):
             self.handle_audio_level()
         elif self.path == '/api/audio/upload':
             self.handle_audio_upload()
+        elif self.path == '/api/system/update':
+            self.handle_system_update()
         elif self.path == '/api/rtp/start':
             # Check if this is the HTTPS server (port 6969) or HTTP server (port 8081)
             if hasattr(self.server, 'server_port') and self.server.server_port == 8081:
@@ -1384,6 +1386,46 @@ class HTTPHandler(SimpleHTTPRequestHandler):
         except Exception as e:
             logger.error(f"Audio upload error: {e}")
             self.send_error(500, "Upload failed")
+    
+    def handle_system_update(self):
+        """Handle system update request - pull from git and restart"""
+        try:
+            logger.info("System update requested")
+            
+            # Send success response first
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            
+            response = {"status": "ok", "message": "Update initiated"}
+            self.wfile.write(json.dumps(response).encode())
+            
+            # Schedule git pull and restart after response is sent
+            def do_update():
+                time.sleep(1)  # Give time for response to be sent
+                try:
+                    # Change to the correct directory
+                    os.chdir('/opt/pimic-audio')
+                    
+                    # Pull latest changes
+                    logger.info("Pulling latest changes from git...")
+                    subprocess.run(['git', 'pull', 'origin', 'master'], check=True)
+                    
+                    # Restart the pm2 process
+                    logger.info("Restarting pm2 process...")
+                    subprocess.run(['pm2', 'restart', 'pimic'], check=True)
+                    
+                    logger.info("System update completed successfully")
+                except Exception as e:
+                    logger.error(f"System update failed: {e}")
+            
+            # Run update in background thread
+            threading.Thread(target=do_update, daemon=True).start()
+            
+        except Exception as e:
+            logger.error(f"System update error: {e}")
+            self.send_error(500, "Update failed")
     
     def handle_rtp_start(self):
         """Handle RTP stream start request"""
