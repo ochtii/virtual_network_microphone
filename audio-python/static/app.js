@@ -9,6 +9,8 @@ class PimicAudioClient {
         this.canvas = null;
         this.ctx = null;
         this.eventSource = null;
+        this.lastLevelSendTime = 0;
+        this.levelSendInterval = 500; // 500ms = 2 requests per second max
         
         this.init();
     }
@@ -243,9 +245,13 @@ class PimicAudioClient {
             // Update meter
             this.drawAudioMeter(level, db);
             
-            // Send level to server
+            // Send level to server (throttled)
             if (this.currentStream) {
-                this.sendAudioLevel(level, db);
+                const now = Date.now();
+                if (now - this.lastLevelSendTime >= this.levelSendInterval) {
+                    this.sendAudioLevel(level, db);
+                    this.lastLevelSendTime = now;
+                }
             }
             
             this.animationId = requestAnimationFrame(monitor);
