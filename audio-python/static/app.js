@@ -206,7 +206,9 @@ class PimicAudioClient {
             // Register stream with Pi server (Pi will host the actual HTTP stream)
             const streamId = `client_stream_${Date.now()}_${this.clientIP?.replace(/\./g, '_') || 'unknown'}`;
             const piHost = window.location.hostname;
-            const streamUrl = `http://${piHost}:${streamPort}/client/${this.clientIP}/stream`;
+            const piPort = window.location.port || '6969';
+            const protocol = window.location.protocol; // Use same protocol as current page
+            const streamUrl = `${protocol}//${piHost}:${piPort}/client/${this.clientIP}/stream`;
             
             try {
                 const response = await fetch('/api/stream/register', {
