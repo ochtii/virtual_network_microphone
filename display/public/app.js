@@ -218,10 +218,16 @@ function setupTouchSettings() {
         intervalSlider.addEventListener('input', () => {
             currentUpdateInterval = parseInt(intervalSlider.value);
             intervalDisplay.textContent = currentUpdateInterval + 'ms';
+            
+            // Save to localStorage immediately
+            localStorage.setItem('updateInterval', currentUpdateInterval);
         });
         
         intervalSlider.addEventListener('change', () => {
             // Update live when slider changes
+            currentUpdateInterval = parseInt(intervalSlider.value);
+            localStorage.setItem('updateInterval', currentUpdateInterval);
+            
             stopLiveUpdates();
             setTimeout(() => {
                 startLiveUpdates();
