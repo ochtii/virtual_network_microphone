@@ -383,8 +383,16 @@
         async function updateStreamCards(data, serverBase) {
             const container = document.getElementById('streamsContainer');
             
-            // Find active clients by checking recent activity
-            const activeClients = await findActiveClients(serverBase);
+            // Use API data if available, otherwise fallback to client detection
+            let activeClients = [];
+            
+            if (data && data.streams && data.streams.length > 0) {
+                // Use streams from API
+                activeClients = data.streams.map(stream => stream.client_ip);
+            } else {
+                // Fallback: Find active clients by checking recent activity
+                activeClients = await findActiveClients(serverBase);
+            }
             
             if (activeClients.length === 0) {
                 container.innerHTML = `
