@@ -327,6 +327,21 @@ class AudioStreamHandler:
             self.audio_clients[client_ip]['last_data'] = time.time()
             logger.info(f"Audio data received from {client_ip}: {len(data)} bytes, buffer size: {len(self.audio_clients[client_ip]['buffer'])} bytes")
             # In a full implementation, this would forward to stream endpoints
+    
+    def handle_http_audio_data(self, data, client_ip):
+        """Handle HTTP-uploaded audio data"""
+        # Initialize client if not exists
+        if client_ip not in self.audio_clients:
+            self.audio_clients[client_ip] = {
+                'config': {'format': 'audio/webm'},
+                'buffer': b'',
+                'last_data': time.time()
+            }
+        
+        # Add data to buffer
+        self.audio_clients[client_ip]['buffer'] += data
+        self.audio_clients[client_ip]['last_data'] = time.time()
+        logger.info(f"HTTP audio data received from {client_ip}: {len(data)} bytes, buffer size: {len(self.audio_clients[client_ip]['buffer'])} bytes")
             
     def get_audio_stream(self, client_ip):
         """Get audio stream for a specific client"""
@@ -467,6 +482,8 @@ class HTTPHandler(SimpleHTTPRequestHandler):
             self.handle_stop_stream()
         elif self.path == '/api/audio/level':
             self.handle_audio_level()
+        elif self.path == '/api/audio/upload':
+            self.handle_audio_upload()
         else:
             self.send_error(404)
     
@@ -781,6 +798,55 @@ class HTTPHandler(SimpleHTTPRequestHandler):
         except Exception as e:
             logger.error(f"Audio level error: {e}")
             self.send_json_response({'success': False, 'error': str(e)})
+    
+    def handle_audio_upload(self):
+        """Handle HTTP audio data upload"""
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            if content_length == 0:
+                self.send_error(400, "No content")
+                return
+                
+            # Read multipart form data
+            content = self.rfile.read(content_length)
+            
+            # Extract client IP from form data (simplified parsing)
+            client_ip = self.client_address[0]  # Fallback to connection IP
+            
+            # Try to extract client IP from form data
+            content_str = content.decode('utf-8', errors='ignore')
+            if 'clientIP' in content_str:
+                import re
+                match = re.search(r'name="clientIP"\r?\n\r?\n([^\r\n]+)', content_str)
+                if match:
+                    client_ip = match.group(1).strip()
+            
+            # Find audio data in multipart content
+            audio_start = content.find(b'\r\n\r\n') + 4
+            audio_end = content.rfind(b'\r\n--')
+            if audio_end == -1:
+                audio_end = len(content)
+                
+            audio_data = content[audio_start:audio_end]
+            
+            if len(audio_data) > 0:
+                # Store audio data in AudioStreamHandler
+                AudioStreamHandler().handle_http_audio_data(audio_data, client_ip)
+                logger.info(f"HTTP audio upload from {client_ip}: {len(audio_data)} bytes")
+                
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                
+                response = {"status": "ok", "bytes": len(audio_data)}
+                self.wfile.write(json.dumps(response).encode())
+            else:
+                self.send_error(400, "No audio data found")
+                
+        except Exception as e:
+            logger.error(f"Audio upload error: {e}")
+            self.send_error(500, "Upload failed")
     
     def serve_index(self):
         """Serve main HTML page"""

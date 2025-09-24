@@ -260,12 +260,9 @@ class PimicAudioClient {
     
     async startAudioStreamToPi(port, bitrate) {
         try {
-            // Create WebSocket connection to Pi for audio streaming
-            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${wsProtocol}//${window.location.host}/ws/audio-stream`;
-            
-            console.log('Connecting to Pi WebSocket:', wsUrl);
-            this.streamWebSocket = new WebSocket(wsUrl);
+            // Use HTTP polling for audio streaming instead of WebSocket
+            console.log('Starting HTTP-based audio streaming to Pi');
+            this.useHttpAudioStreaming = true;
             
             this.streamWebSocket.onopen = () => {
                 console.log('Audio stream WebSocket connected - State:', this.streamWebSocket.readyState);
@@ -303,15 +300,10 @@ class PimicAudioClient {
             });
             
             this.mediaRecorder.ondataavailable = (event) => {
-                console.log(`MediaRecorder data available: ${event.data.size} bytes, WebSocket state: ${this.streamWebSocket?.readyState}`);
-                if (event.data.size > 0 && this.streamWebSocket?.readyState === WebSocket.OPEN) {
-                    // Convert blob to array buffer and send to Pi
-                    event.data.arrayBuffer().then(buffer => {
-                        console.log(`Sending audio data to Pi: ${buffer.byteLength} bytes`);
-                        this.streamWebSocket.send(buffer);
-                    });
-                } else {
-                    console.warn(`Cannot send audio data: data size=${event.data.size}, WebSocket state=${this.streamWebSocket?.readyState}`);
+                console.log(`MediaRecorder data available: ${event.data.size} bytes`);
+                if (event.data.size > 0) {
+                    // Send audio data via HTTP POST instead of WebSocket
+                    this.sendAudioDataViaHttp(event.data);
                 }
             };
             
@@ -322,12 +314,34 @@ class PimicAudioClient {
             // Start recording in small chunks for live streaming
             this.mediaRecorder.start(100); // 100ms chunks
             
-            console.log(`Audio stream to Pi started: ${bitrate}kbps, format: audio/webm`);
-            console.log(`MediaRecorder state: ${this.mediaRecorder.state}, WebSocket state: ${this.streamWebSocket.readyState}`);
+            console.log(`Audio stream to Pi started: ${bitrate}kbps, format: audio/webm via HTTP`);
+            console.log(`MediaRecorder state: ${this.mediaRecorder.state}`);
             
         } catch (error) {
             console.error('Failed to start audio stream to Pi:', error);
             throw error;
+        }
+    }
+    
+    async sendAudioDataViaHttp(audioBlob) {
+        try {
+            const formData = new FormData();
+            formData.append('audio', audioBlob, 'audio.webm');
+            formData.append('clientIP', this.clientIP);
+            formData.append('timestamp', Date.now());
+            
+            const response = await fetch('/api/audio/upload', {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (response.ok) {
+                console.log(`Audio data sent via HTTP: ${audioBlob.size} bytes`);
+            } else {
+                console.error('HTTP audio upload failed:', response.status);
+            }
+        } catch (error) {
+            console.error('HTTP audio upload error:', error);
         }
     }
     
