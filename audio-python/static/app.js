@@ -295,11 +295,15 @@ class PimicAudioClient {
             });
             
             this.mediaRecorder.ondataavailable = (event) => {
+                console.log(`MediaRecorder data available: ${event.data.size} bytes, WebSocket state: ${this.streamWebSocket?.readyState}`);
                 if (event.data.size > 0 && this.streamWebSocket?.readyState === WebSocket.OPEN) {
                     // Convert blob to array buffer and send to Pi
                     event.data.arrayBuffer().then(buffer => {
+                        console.log(`Sending audio data to Pi: ${buffer.byteLength} bytes`);
                         this.streamWebSocket.send(buffer);
                     });
+                } else {
+                    console.warn(`Cannot send audio data: data size=${event.data.size}, WebSocket state=${this.streamWebSocket?.readyState}`);
                 }
             };
             
@@ -311,6 +315,7 @@ class PimicAudioClient {
             this.mediaRecorder.start(100); // 100ms chunks
             
             console.log(`Audio stream to Pi started: ${bitrate}kbps, format: audio/webm`);
+            console.log(`MediaRecorder state: ${this.mediaRecorder.state}, WebSocket state: ${this.streamWebSocket.readyState}`);
             
         } catch (error) {
             console.error('Failed to start audio stream to Pi:', error);
