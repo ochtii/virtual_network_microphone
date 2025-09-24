@@ -89,6 +89,21 @@ class PimicAudioClient {
     
     async startStream() {
         try {
+            // Check if running over HTTPS or localhost
+            const isSecureContext = location.protocol === 'https:' || 
+                                   location.hostname === 'localhost' || 
+                                   location.hostname === '127.0.0.1' ||
+                                   location.hostname.endsWith('.local');
+
+            if (!isSecureContext) {
+                throw new Error('HTTPS required: Modern browsers require HTTPS for microphone access. Please use HTTPS or access via localhost.');
+            }
+
+            // Check if getUserMedia is available
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                throw new Error('getUserMedia not supported: Your browser does not support audio capture. Please use a modern browser with audio support.');
+            }
+
             const audioSource = document.getElementById('audioSource').value;
             const bitrate = parseInt(document.getElementById('bitrate').value);
             const streamPort = parseInt(document.getElementById('streamPort').value);
