@@ -190,6 +190,106 @@
             background: rgba(0, 0, 0, 0.3);
         }
         
+        .enhanced-player {
+            background: linear-gradient(135deg, rgba(255, 230, 109, 0.1), rgba(44, 62, 80, 0.1));
+            border: 1px solid rgba(255, 230, 109, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+        
+        .player-visualizer {
+            width: 100%;
+            height: 60px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            margin: 10px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .visualizer-canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
+        }
+        
+        .player-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 15px 0;
+        }
+        
+        .player-time {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: monospace;
+            font-size: 0.9em;
+            color: #FFE66D;
+        }
+        
+        .player-progress {
+            flex: 1;
+            margin: 0 15px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+            overflow: hidden;
+            cursor: pointer;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #FFE66D, #FF6B6B);
+            width: 0%;
+            transition: width 0.1s ease;
+        }
+        
+        .volume-visualizer {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .volume-bars {
+            display: flex;
+            gap: 2px;
+            align-items: flex-end;
+            height: 20px;
+        }
+        
+        .volume-bar {
+            width: 3px;
+            background: #FFE66D;
+            border-radius: 1px;
+            transition: height 0.1s ease;
+        }
+        
+        .rtp-info {
+            background: rgba(255, 107, 107, 0.1);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+        
+        .rtp-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .rtp-status {
+            color: #FF6B6B;
+            font-weight: bold;
+        }
+        
         .stream-info {
             background: rgba(0, 0, 0, 0.2);
             padding: 10px;
@@ -469,32 +569,54 @@
                         <div class="stream-status status-active">🟢 Aktiv</div>
                     </div>
                     
-                    <div class="audio-controls">
-                        <div class="control-buttons">
-                            <button class="control-btn" onclick="playStream('${clientIP}', '${playerId}', '${serverBase}')">
-                                ▶️ Abspielen
-                            </button>
-                            <button class="control-btn" onclick="pauseStream('${playerId}')">
-                                ⏸️ Pause
-                            </button>
-                            <button class="control-btn" onclick="stopStream('${playerId}')">
-                                ⏹️ Stop
-                            </button>
-                            <button class="control-btn" onclick="refreshStream('${clientIP}', '${playerId}')">
-                                🔄 Refresh
-                            </button>
+                    <div class="enhanced-player">
+                        <!-- Visualizer -->
+                        <div class="player-visualizer">
+                            <canvas id="visualizer_${playerId}" class="visualizer-canvas"></canvas>
                         </div>
                         
-                        <div class="volume-control">
+                        <!-- Player Controls -->
+                        <div class="player-controls">
+                            <div class="control-buttons">
+                                <button class="control-btn" onclick="playEnhancedStream('${clientIP}', '${playerId}', '${serverBase}')">
+                                    ▶️
+                                </button>
+                                <button class="control-btn" onclick="pauseEnhancedStream('${playerId}')">
+                                    ⏸️
+                                </button>
+                                <button class="control-btn" onclick="stopEnhancedStream('${playerId}')">
+                                    ⏹️
+                                </button>
+                                <button class="control-btn" onclick="refreshStream('${clientIP}', '${playerId}')">
+                                    🔄
+                                </button>
+                            </div>
+                            
+                            <div class="player-progress">
+                                <div class="progress-bar" onclick="seekStream('${playerId}', event)">
+                                    <div id="progress_${playerId}" class="progress-fill"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="player-time">
+                                <span id="time_${playerId}">00:00</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Volume Control with Visualizer -->
+                        <div class="volume-visualizer">
                             <span>🔊</span>
                             <input type="range" class="volume-slider" min="0" max="100" value="80" 
-                                   onchange="setVolume('${playerId}', this.value)">
+                                   onchange="setEnhancedVolume('${playerId}', this.value)">
                             <span id="volume_${playerId}">80%</span>
+                            <div class="volume-bars" id="volumeBars_${playerId}">
+                                ${Array.from({length: 10}, (_, i) => `<div class="volume-bar" style="height: 2px;"></div>`).join('')}
+                            </div>
                         </div>
                         
-                        <audio id="${playerId}" controls class="audio-player" preload="none">
+                        <!-- Hidden audio element for actual playback -->
+                        <audio id="${playerId}" preload="none" style="display: none;">
                             <source type="audio/webm">
-                            Ihr Browser unterstützt das Audio-Element nicht.
                         </audio>
                     </div>
                     
@@ -510,6 +632,29 @@
                         <div class="info-row">
                             <span>Letzter Refresh:</span>
                             <span id="refresh_${playerId}">-</span>
+                        </div>
+                    </div>
+                    
+                    <!-- RTP Stream Information -->
+                    <div class="rtp-info">
+                        <div class="info-row">
+                            <span>🌐 RTP Stream:</span>
+                            <span class="rtp-status" id="rtpStatus_${playerId}">Gestoppt</span>
+                        </div>
+                        <div class="info-row">
+                            <span>RTP URL:</span>
+                            <span style="font-family: monospace; font-size: 0.8em;" id="rtpUrl_${playerId}">rtp://192.168.188.90:5004</span>
+                        </div>
+                        <div class="rtp-controls">
+                            <button class="control-btn" onclick="startRTPStream('${clientIP}', '${playerId}')">
+                                📡 RTP Start
+                            </button>
+                            <button class="control-btn" onclick="stopRTPStream('${clientIP}', '${playerId}')">
+                                ⏹️ RTP Stop
+                            </button>
+                            <button class="control-btn" onclick="copyRTPUrl('${clientIP}', '${playerId}')">
+                                📋 URL kopieren
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -696,6 +841,295 @@
             container.innerHTML = `<div class="error">❌ ${message}</div>`;
         }
         
+        // Enhanced Player Functions
+        const audioContexts = new Map();
+        const visualizers = new Map();
+        
+        // Play enhanced stream with visualization
+        async function playEnhancedStream(clientIP, playerId, serverBase) {
+            const audio = document.getElementById(playerId);
+            const statusElement = document.getElementById(`status_${playerId}`);
+            const infoElement = document.getElementById(`info_${playerId}`);
+            
+            try {
+                statusElement.textContent = 'Lädt...';
+                infoElement.textContent = 'Stream wird geladen...';
+                
+                // Always use HTTPS server for streams (port 6969), not the dashboard server
+                const streamBaseUrl = `https://${window.location.hostname}:6969`;
+                let streamUrl = `${streamBaseUrl}/client/${clientIP}/stream?t=${Date.now()}`;
+                
+                // Setup audio source
+                const source = audio.querySelector('source') || audio.appendChild(document.createElement('source'));
+                source.src = streamUrl;
+                source.type = 'audio/webm';
+                audio.load();
+                
+                // Setup audio visualization
+                setupAudioVisualization(playerId, audio);
+                
+                // Store player reference
+                streamPlayers.set(playerId, { clientIP, isPlaying: false });
+                
+                // Event listeners
+                audio.addEventListener('loadstart', () => {
+                    statusElement.textContent = 'Lädt...';
+                    infoElement.textContent = 'Stream lädt...';
+                });
+                
+                audio.addEventListener('canplay', () => {
+                    statusElement.textContent = 'Bereit';
+                    infoElement.textContent = 'Stream bereit zum Abspielen';
+                });
+                
+                audio.addEventListener('play', () => {
+                    statusElement.textContent = 'Spielt ab';
+                    infoElement.textContent = 'Live-Stream aktiv';
+                    const player = streamPlayers.get(playerId);
+                    if (player) player.isPlaying = true;
+                    startVisualization(playerId);
+                });
+                
+                audio.addEventListener('pause', () => {
+                    statusElement.textContent = 'Pausiert';
+                    infoElement.textContent = 'Stream pausiert';
+                    const player = streamPlayers.get(playerId);
+                    if (player) player.isPlaying = false;
+                    stopVisualization(playerId);
+                });
+                
+                audio.addEventListener('timeupdate', () => {
+                    updatePlayerTime(playerId, audio);
+                });
+                
+                audio.addEventListener('error', async (e) => {
+                    console.error('Audio error for', clientIP, ':', e);
+                    statusElement.textContent = 'Fehler';
+                    infoElement.textContent = 'Stream-Fehler aufgetreten';
+                    stopVisualization(playerId);
+                });
+                
+                // Try to play
+                setTimeout(() => {
+                    audio.play().catch(err => {
+                        console.log('Autoplay blocked for', clientIP);
+                        infoElement.textContent = 'Klicke Play um zu starten (Autoplay blockiert)';
+                    });
+                }, 1000);
+                
+                updateRefreshTime(playerId);
+                
+            } catch (error) {
+                statusElement.textContent = 'Fehler';
+                infoElement.textContent = 'Fehler: ' + error.message;
+                console.error('Error playing enhanced stream:', error);
+            }
+        }
+        
+        // Pause enhanced stream
+        function pauseEnhancedStream(playerId) {
+            const audio = document.getElementById(playerId);
+            audio.pause();
+            stopVisualization(playerId);
+        }
+        
+        // Stop enhanced stream
+        function stopEnhancedStream(playerId) {
+            const audio = document.getElementById(playerId);
+            audio.pause();
+            audio.currentTime = 0;
+            stopVisualization(playerId);
+        }
+        
+        // Set enhanced volume
+        function setEnhancedVolume(playerId, volume) {
+            const audio = document.getElementById(playerId);
+            const volumeSpan = document.getElementById(`volume_${playerId}`);
+            audio.volume = volume / 100;
+            volumeSpan.textContent = volume + '%';
+        }
+        
+        // Setup audio visualization
+        function setupAudioVisualization(playerId, audio) {
+            const canvas = document.getElementById(`visualizer_${playerId}`);
+            const ctx = canvas.getContext('2d');
+            
+            // Set canvas size
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            
+            try {
+                // Create audio context and analyzer
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const analyzer = audioContext.createAnalyser();
+                const source = audioContext.createMediaElementSource(audio);
+                
+                source.connect(analyzer);
+                analyzer.connect(audioContext.destination);
+                
+                analyzer.fftSize = 256;
+                const bufferLength = analyzer.frequencyBinCount;
+                const dataArray = new Uint8Array(bufferLength);
+                
+                audioContexts.set(playerId, { audioContext, analyzer, dataArray, ctx, canvas });
+                
+            } catch (error) {
+                console.warn('Audio visualization not supported:', error);
+            }
+        }
+        
+        // Start visualization
+        function startVisualization(playerId) {
+            const visualizer = audioContexts.get(playerId);
+            if (!visualizer) return;
+            
+            const { analyzer, dataArray, ctx, canvas } = visualizer;
+            
+            function draw() {
+                if (!streamPlayers.get(playerId)?.isPlaying) return;
+                
+                requestAnimationFrame(draw);
+                
+                analyzer.getByteFrequencyData(dataArray);
+                
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                const barWidth = (canvas.width / dataArray.length) * 2.5;
+                let barHeight;
+                let x = 0;
+                
+                for (let i = 0; i < dataArray.length; i++) {
+                    barHeight = (dataArray[i] / 255) * canvas.height;
+                    
+                    const r = barHeight + 25 * (i / dataArray.length);
+                    const g = 250 * (i / dataArray.length);
+                    const b = 50;
+                    
+                    ctx.fillStyle = `rgb(${r},${g},${b})`;
+                    ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+                    
+                    x += barWidth + 1;
+                }
+                
+                // Update volume bars
+                updateVolumeBars(playerId, dataArray);
+            }
+            
+            draw();
+        }
+        
+        // Stop visualization
+        function stopVisualization(playerId) {
+            const visualizer = audioContexts.get(playerId);
+            if (!visualizer) return;
+            
+            const { ctx, canvas } = visualizer;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Clear volume bars
+            const volumeBars = document.getElementById(`volumeBars_${playerId}`);
+            if (volumeBars) {
+                const bars = volumeBars.querySelectorAll('.volume-bar');
+                bars.forEach(bar => bar.style.height = '2px');
+            }
+        }
+        
+        // Update volume bars
+        function updateVolumeBars(playerId, dataArray) {
+            const volumeBars = document.getElementById(`volumeBars_${playerId}`);
+            if (!volumeBars) return;
+            
+            const bars = volumeBars.querySelectorAll('.volume-bar');
+            const segmentSize = Math.floor(dataArray.length / bars.length);
+            
+            bars.forEach((bar, index) => {
+                let sum = 0;
+                for (let i = index * segmentSize; i < (index + 1) * segmentSize; i++) {
+                    sum += dataArray[i] || 0;
+                }
+                const average = sum / segmentSize;
+                const height = Math.max(2, (average / 255) * 20);
+                bar.style.height = height + 'px';
+            });
+        }
+        
+        // Update player time display
+        function updatePlayerTime(playerId, audio) {
+            const timeElement = document.getElementById(`time_${playerId}`);
+            if (timeElement && audio.duration) {
+                const minutes = Math.floor(audio.currentTime / 60);
+                const seconds = Math.floor(audio.currentTime % 60);
+                timeElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            } else if (timeElement) {
+                // For live streams, show "LIVE"
+                timeElement.textContent = 'LIVE';
+            }
+        }
+        
+        // RTP Stream Functions
+        async function startRTPStream(clientIP, playerId) {
+            try {
+                const response = await fetch(`${SERVER_BASE}/api/rtp/start`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ client_ip: clientIP })
+                });
+                
+                const result = await response.json();
+                const statusElement = document.getElementById(`rtpStatus_${playerId}`);
+                const urlElement = document.getElementById(`rtpUrl_${playerId}`);
+                
+                if (result.success) {
+                    statusElement.textContent = 'Aktiv';
+                    statusElement.style.color = '#4ECDC4';
+                    urlElement.textContent = result.rtp_url;
+                } else {
+                    throw new Error(result.error || 'RTP Start fehlgeschlagen');
+                }
+                
+            } catch (error) {
+                console.error('RTP start error:', error);
+                alert('RTP Stream konnte nicht gestartet werden: ' + error.message);
+            }
+        }
+        
+        async function stopRTPStream(clientIP, playerId) {
+            try {
+                const response = await fetch(`${SERVER_BASE}/api/rtp/stop`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ client_ip: clientIP })
+                });
+                
+                const result = await response.json();
+                const statusElement = document.getElementById(`rtpStatus_${playerId}`);
+                
+                if (result.success) {
+                    statusElement.textContent = 'Gestoppt';
+                    statusElement.style.color = '#FF6B6B';
+                } else {
+                    throw new Error(result.error || 'RTP Stop fehlgeschlagen');
+                }
+                
+            } catch (error) {
+                console.error('RTP stop error:', error);
+                alert('RTP Stream konnte nicht gestoppt werden: ' + error.message);
+            }
+        }
+        
+        function copyRTPUrl(clientIP, playerId) {
+            const urlElement = document.getElementById(`rtpUrl_${playerId}`);
+            const url = urlElement.textContent;
+            
+            navigator.clipboard.writeText(url).then(() => {
+                alert('RTP URL kopiert: ' + url);
+            }).catch(err => {
+                console.error('Clipboard error:', err);
+                prompt('RTP URL:', url);
+            });
+        }
+
         // Initialize dashboard when page loads
         document.addEventListener('DOMContentLoaded', initDashboard);
         
@@ -704,6 +1138,13 @@
             if (autoRefreshInterval) {
                 clearInterval(autoRefreshInterval);
             }
+            
+            // Cleanup audio contexts
+            audioContexts.forEach((context, playerId) => {
+                if (context.audioContext) {
+                    context.audioContext.close();
+                }
+            });
         });
     </script>
 </body>

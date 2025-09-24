@@ -60,6 +60,189 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+class RTPStreamer:
+    """RTP Audio Streaming for professional audio tools"""
+    
+    def __init__(self):
+        self.active_rtp_streams = {}
+        self.rtp_base_port = 5004
+        
+    def start_rtp_stream(self, client_ip: str, audio_handler) -> dict:
+        """Start RTP stream for a client"""
+        try:
+            if client_ip in self.active_rtp_streams:
+                return self.active_rtp_streams[client_ip]
+            
+            # Find available port
+            rtp_port = self.rtp_base_port
+            while rtp_port in [stream['port'] for stream in self.active_rtp_streams.values()]:
+                rtp_port += 2  # RTP uses even ports, RTCP uses odd
+            
+            # Create RTP stream configuration
+            rtp_config = {
+                'client_ip': client_ip,
+                'port': rtp_port,
+                'rtcp_port': rtp_port + 1,
+                'payload_type': 96,  # Dynamic payload type for Opus
+                'ssrc': self._generate_ssrc(client_ip),
+                'sequence_number': 0,
+                'timestamp': 0,
+                'socket': None,
+                'thread': None,
+                'running': False
+            }
+            
+            # Create UDP socket for RTP
+            rtp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            rtp_socket.bind(('0.0.0.0', rtp_port))
+            rtp_config['socket'] = rtp_socket
+            
+            # Start RTP streaming thread
+            rtp_config['running'] = True
+            rtp_thread = threading.Thread(
+                target=self._rtp_streaming_loop,
+                args=(rtp_config, audio_handler),
+                daemon=True
+            )
+            rtp_thread.start()
+            rtp_config['thread'] = rtp_thread
+            
+            self.active_rtp_streams[client_ip] = rtp_config
+            
+            logger.info(f"RTP stream started for {client_ip} on port {rtp_port}")
+            
+            return {
+                'success': True,
+                'rtp_url': f'rtp://0.0.0.0:{rtp_port}',
+                'rtcp_url': f'rtp://0.0.0.0:{rtp_port + 1}',
+                'payload_type': rtp_config['payload_type'],
+                'client_ip': client_ip
+            }
+            
+        except Exception as e:
+            logger.error(f"RTP stream start failed for {client_ip}: {e}")
+            return {'success': False, 'error': str(e)}
+    
+    def stop_rtp_stream(self, client_ip: str) -> dict:
+        """Stop RTP stream for a client"""
+        try:
+            if client_ip not in self.active_rtp_streams:
+                return {'success': False, 'error': 'RTP stream not found'}
+            
+            stream = self.active_rtp_streams[client_ip]
+            
+            # Stop streaming
+            stream['running'] = False
+            
+            # Close socket
+            if stream['socket']:
+                stream['socket'].close()
+            
+            # Wait for thread to finish
+            if stream['thread'] and stream['thread'].is_alive():
+                stream['thread'].join(timeout=1.0)
+            
+            del self.active_rtp_streams[client_ip]
+            
+            logger.info(f"RTP stream stopped for {client_ip}")
+            
+            return {'success': True}
+            
+        except Exception as e:
+            logger.error(f"RTP stream stop failed for {client_ip}: {e}")
+            return {'success': False, 'error': str(e)}
+    
+    def _generate_ssrc(self, client_ip: str) -> int:
+        """Generate SSRC from client IP"""
+        hash_obj = hashlib.md5(client_ip.encode())
+        return struct.unpack('>I', hash_obj.digest()[:4])[0]
+    
+    def _rtp_streaming_loop(self, rtp_config, audio_handler):
+        """Main RTP streaming loop"""
+        try:
+            client_ip = rtp_config['client_ip']
+            rtp_socket = rtp_config['socket']
+            
+            # RTP packet header template (12 bytes)
+            # V=2, P=0, X=0, CC=0, M=0, PT=payload_type
+            version_flags = 0x80  # Version 2
+            payload_type = rtp_config['payload_type']
+            
+            logger.info(f"RTP streaming loop started for {client_ip}")
+            
+            while rtp_config['running'] and server_running:
+                try:
+                    # Get audio data from handler
+                    if not audio_handler.has_audio_data(client_ip):
+                        time.sleep(0.01)  # 10ms sleep
+                        continue
+                    
+                    audio_data = audio_handler.get_audio_chunk(client_ip)
+                    if not audio_data:
+                        time.sleep(0.01)
+                        continue
+                    
+                    # Create RTP header
+                    sequence_number = rtp_config['sequence_number']
+                    timestamp = rtp_config['timestamp']
+                    ssrc = rtp_config['ssrc']
+                    
+                    # Pack RTP header
+                    rtp_header = struct.pack(
+                        '>BBHII',
+                        version_flags,
+                        payload_type,
+                        sequence_number & 0xFFFF,
+                        timestamp & 0xFFFFFFFF,
+                        ssrc & 0xFFFFFFFF
+                    )
+                    
+                    # Create RTP packet
+                    rtp_packet = rtp_header + audio_data
+                    
+                    # Send to all multicast addresses or specific destinations
+                    # For now, send to multicast address for easy consumption
+                    multicast_addr = ('224.0.0.1', rtp_config['port'])
+                    
+                    try:
+                        rtp_socket.sendto(rtp_packet, multicast_addr)
+                    except Exception as send_error:
+                        logger.debug(f"RTP send error: {send_error}")
+                    
+                    # Update sequence number and timestamp
+                    rtp_config['sequence_number'] = (sequence_number + 1) & 0xFFFF
+                    rtp_config['timestamp'] = (timestamp + 960) & 0xFFFFFFFF  # 960 samples for 20ms at 48kHz
+                    
+                    # Small delay to maintain timing
+                    time.sleep(0.02)  # 20ms delay
+                    
+                except Exception as e:
+                    if rtp_config['running']:
+                        logger.debug(f"RTP streaming error for {client_ip}: {e}")
+                    time.sleep(0.01)
+            
+        except Exception as e:
+            logger.error(f"RTP streaming loop error for {client_ip}: {e}")
+        finally:
+            logger.info(f"RTP streaming loop ended for {client_ip}")
+    
+    def get_active_streams(self) -> dict:
+        """Get information about active RTP streams"""
+        return {
+            'active_count': len(self.active_rtp_streams),
+            'streams': [
+                {
+                    'client_ip': config['client_ip'],
+                    'rtp_port': config['port'],
+                    'rtcp_port': config['rtcp_port'],
+                    'rtp_url': f'rtp://224.0.0.1:{config["port"]}',
+                    'payload_type': config['payload_type']
+                }
+                for config in self.active_rtp_streams.values()
+            ]
+        }
+
+
 class NetworkDiscovery:
     """Network service discovery and announcement"""
     
@@ -373,6 +556,23 @@ class AudioStreamHandler:
             is_recent = time_since_last < 10.0  # 10 seconds timeout
             return has_buffer and is_recent
         return False
+    
+    def get_audio_chunk(self, client_ip, chunk_size=960):
+        """Get audio chunk for RTP streaming"""
+        if client_ip not in self.audio_clients:
+            return None
+        
+        client_data = self.audio_clients[client_ip]
+        buffer = client_data['buffer']
+        
+        if len(buffer) < chunk_size:
+            return None
+        
+        # Extract chunk and update buffer
+        chunk = buffer[:chunk_size]
+        client_data['buffer'] = buffer[chunk_size:]
+        
+        return chunk
 
 
 class StreamServer:
@@ -483,6 +683,8 @@ class HTTPHandler(SimpleHTTPRequestHandler):
             self.serve_events_stream()
         elif self.path == '/health':
             self.serve_health()
+        elif self.path == '/api/rtp/streams':
+            self.serve_rtp_streams_api()
         elif self.path.startswith('/static/'):
             self.serve_static_file()
         elif self.path.startswith('/client/') and self.path.endswith('/stream'):
@@ -510,6 +712,10 @@ class HTTPHandler(SimpleHTTPRequestHandler):
             self.handle_audio_level()
         elif self.path == '/api/audio/upload':
             self.handle_audio_upload()
+        elif self.path == '/api/rtp/start':
+            self.handle_rtp_start()
+        elif self.path == '/api/rtp/stop':
+            self.handle_rtp_stop()
         else:
             self.send_error(404)
     
@@ -1076,6 +1282,84 @@ class HTTPHandler(SimpleHTTPRequestHandler):
             logger.error(f"Audio upload error: {e}")
             self.send_error(500, "Upload failed")
     
+    def handle_rtp_start(self):
+        """Handle RTP stream start request"""
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            if content_length <= 0:
+                self.send_json_response({'success': False, 'error': 'Invalid request'})
+                return
+            
+            post_data = self.rfile.read(content_length)
+            data = json.loads(post_data.decode('utf-8'))
+            
+            client_ip = data.get('client_ip')
+            if not client_ip:
+                self.send_json_response({'success': False, 'error': 'Missing client_ip'})
+                return
+            
+            # Get RTP streamer instance
+            if not hasattr(self.server, 'rtp_streamer'):
+                self.server.rtp_streamer = RTPStreamer()
+            
+            # Get audio handler
+            global global_audio_handler
+            if not global_audio_handler:
+                global_audio_handler = AudioStreamHandler()
+            
+            # Start RTP stream
+            result = self.server.rtp_streamer.start_rtp_stream(client_ip, global_audio_handler)
+            self.send_json_response(result)
+            
+        except Exception as e:
+            logger.error(f"RTP start error: {e}")
+            self.send_json_response({'success': False, 'error': str(e)})
+    
+    def handle_rtp_stop(self):
+        """Handle RTP stream stop request"""
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            if content_length <= 0:
+                self.send_json_response({'success': False, 'error': 'Invalid request'})
+                return
+            
+            post_data = self.rfile.read(content_length)
+            data = json.loads(post_data.decode('utf-8'))
+            
+            client_ip = data.get('client_ip')
+            if not client_ip:
+                self.send_json_response({'success': False, 'error': 'Missing client_ip'})
+                return
+            
+            # Get RTP streamer instance
+            if not hasattr(self.server, 'rtp_streamer'):
+                self.send_json_response({'success': False, 'error': 'RTP streamer not initialized'})
+                return
+            
+            # Stop RTP stream
+            result = self.server.rtp_streamer.stop_rtp_stream(client_ip)
+            self.send_json_response(result)
+            
+        except Exception as e:
+            logger.error(f"RTP stop error: {e}")
+            self.send_json_response({'success': False, 'error': str(e)})
+    
+    def serve_rtp_streams_api(self):
+        """Serve RTP streams API"""
+        try:
+            if not hasattr(self.server, 'rtp_streamer'):
+                self.server.rtp_streamer = RTPStreamer()
+            
+            rtp_info = self.server.rtp_streamer.get_active_streams()
+            self.send_json_response({
+                'success': True,
+                'rtp_streams': rtp_info
+            })
+            
+        except Exception as e:
+            logger.error(f"RTP streams API error: {e}")
+            self.send_json_response({'success': False, 'error': str(e)})
+
     def serve_index(self):
         """Serve main HTML page"""
         try:
