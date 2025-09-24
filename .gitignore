@@ -1,4 +1,24 @@
 node_modules/
 display/node_modules/
 *.log
+*-pm2*.log
 .env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Temporäre Dateien
+*.tmp
+*.bak
+*~
+.DS_Store
+
+# Netzwerk-Statistiken (werden zur Laufzeit erstellt)
+network_stats.json
+
+# Build und Distribution
+dist/
+build/
