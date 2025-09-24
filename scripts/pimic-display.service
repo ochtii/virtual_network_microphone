@@ -1,20 +1,20 @@
 [Unit]
 Description=PIMIC Dashboard Display Service
-After=graphical-session.target
-Wants=graphical-session.target
+After=multi-user.target graphical.target
+Wants=multi-user.target
 
 [Service]
-Type=forking
+Type=simple
 User=ochtii
 Environment=DISPLAY=:0
 Environment=HOME=/home/ochtii
 WorkingDirectory=/home/ochtii/pimic
-ExecStartPre=/bin/sleep 10
+ExecStartPre=/bin/sleep 15
 ExecStart=/home/ochtii/pimic/scripts/start_dashboard_display.sh
 ExecStop=/usr/bin/pkill -f chromium
 Restart=always
-RestartSec=5
-TimeoutStartSec=30
+RestartSec=10
+TimeoutStartSec=60
 
 [Install]
-WantedBy=graphical-session.target
+WantedBy=multi-user.target
