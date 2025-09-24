@@ -362,6 +362,17 @@ class AudioStreamHandler:
                 # Return a copy of buffer without clearing it
                 return buffer
         return b''
+    
+    def has_audio_data(self, client_ip):
+        """Check if client has active audio data (within last 10 seconds)"""
+        if client_ip in self.audio_clients:
+            client_data = self.audio_clients[client_ip]
+            # Check if we have recent data (within last 10 seconds)
+            time_since_last = time.time() - client_data['last_data']
+            has_buffer = len(client_data['buffer']) > 0
+            is_recent = time_since_last < 10.0  # 10 seconds timeout
+            return has_buffer and is_recent
+        return False
 
 
 class StreamServer:
@@ -499,6 +510,64 @@ class HTTPHandler(SimpleHTTPRequestHandler):
             self.handle_audio_level()
         elif self.path == '/api/audio/upload':
             self.handle_audio_upload()
+        else:
+            self.send_error(404)
+    
+    def do_HEAD(self):
+        """Handle HEAD requests - check if resource exists without returning body"""
+        if self.path == '/':
+            self.send_response(200)
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+        elif self.path == '/api/streams':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+        elif self.path == '/api/config':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+        elif self.path == '/api/network':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+        elif self.path == '/health':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+        elif self.path.startswith('/static/'):
+            # Check if static file exists
+            file_path = self.path[1:]  # Remove leading /
+            static_path = Path(__file__).parent / file_path
+            if static_path.exists():
+                self.send_response(200)
+                if file_path.endswith('.css'):
+                    content_type = 'text/css'
+                elif file_path.endswith('.js'):
+                    content_type = 'application/javascript'
+                elif file_path.endswith('.html'):
+                    content_type = 'text/html'
+                else:
+                    content_type = 'text/plain'
+                self.send_header('Content-type', content_type)
+                self.end_headers()
+            else:
+                self.send_error(404)
+        elif self.path.startswith('/client/') and self.path.endswith('/stream'):
+            # Check if client stream is available
+            path_parts = self.path.split('/')
+            if len(path_parts) >= 3:
+                client_ip = path_parts[2]
+                # Check if we have audio data for this client
+                if global_audio_handler and global_audio_handler.has_audio_data(client_ip):
+                    self.send_response(200)
+                    self.send_header('Content-type', 'audio/webm')
+                    self.send_header('Access-Control-Allow-Origin', '*')
+                    self.end_headers()
+                else:
+                    self.send_error(404)
+            else:
+                self.send_error(400)
         else:
             self.send_error(404)
     
