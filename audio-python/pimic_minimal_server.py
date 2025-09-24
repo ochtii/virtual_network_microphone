@@ -1649,7 +1649,7 @@ class PimicAudioServer:
         print(f"""
 🎵 PIMIC Audio Streaming Server (Pure Python) 🎵
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📡 Web Interface:  http://localhost:{CONFIG['web_port']}
+Web Interface:  http://localhost:{CONFIG['web_port']}
 🎧 Stream Ports:   {CONFIG['default_stream_port']}+
 🔊 Bitrate Range:  {CONFIG['min_bitrate']}-{CONFIG['max_bitrate']} kbps
 🐍 Runtime:        Python {sys.version.split()[0]}
@@ -1696,7 +1696,7 @@ class PimicAudioServer:
                 logger.error(f"HTTPS setup failed: {e}")
                 print(f"⚠️  HTTPS setup failed, falling back to HTTP: {e}")
         else:
-            logger.info("📡 HTTP server (no SSL certificates found)")
+            logger.info("HTTP server (no SSL certificates found)")
             print(f"⚠️  HTTP only: Microphone access requires HTTPS in modern browsers")
             print(f"💡 For HTTPS, generate certificates or use localhost")
         
@@ -1705,7 +1705,7 @@ class PimicAudioServer:
             try:
                 http_port = 8081
                 http_server = ThreadingHTTPServer(("0.0.0.0", http_port), HTTPHandler)
-                logger.info(f"📡 Additional HTTP server started on port {http_port}")
+                logger.info(f"Additional HTTP server started on port {http_port}")
                 print(f"🌍 HTTP Dashboard: http://{self.get_server_ip()}:{http_port}/static/dashboard.html")
                 print(f"🌍 HTTP Access: http://{self.get_server_ip()}:{http_port}/")
                 http_server.serve_forever()
