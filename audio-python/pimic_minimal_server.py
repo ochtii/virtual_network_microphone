@@ -680,16 +680,17 @@ class PimicAudioServer:
         self.http_server = ThreadingHTTPServer(("0.0.0.0", CONFIG['web_port']), HTTPHandler)
         
         # Check for HTTPS certificates and setup SSL context
-        cert_file = "/opt/pimic-audio/server.crt"
-        key_file = "/opt/pimic-audio/server.key"
+        script_dir = Path(__file__).parent
+        cert_file = script_dir / "server.crt"
+        key_file = script_dir / "server.key"
         
-        if os.path.exists(cert_file) and os.path.exists(key_file):
+        if cert_file.exists() and key_file.exists():
             try:
                 import ssl
                 
                 # Create SSL context
                 ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-                ssl_context.load_cert_chain(cert_file, key_file)
+                ssl_context.load_cert_chain(str(cert_file), str(key_file))
                 
                 # Create HTTPS server by wrapping the socket
                 self.http_server.socket = ssl_context.wrap_socket(
