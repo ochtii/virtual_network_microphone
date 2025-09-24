@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Audio Stream - Client 192.168.188.28</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        .client-info {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .audio-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        button {
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .audio-element {
+            width: 100%;
+            margin: 10px 0;
+            border-radius: 10px;
+        }
+        .status {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+        }
+        .error {
+            background: rgba(255, 0, 0, 0.3);
+        }
+        .success {
+            background: rgba(0, 255, 0, 0.3);
+        }
+        .method-section {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+        .method-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        .stream-url {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            word-break: break-all;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 Live Audio Stream</h1>
+        
+        <div class="client-info">
+            <strong>Client:</strong> 192.168.188.28<br>
+            <strong>Server:</strong> 192.168.188.90:6969<br>
+            <strong>Status:</strong> <span id="connectionStatus">Verbindung prüfen...</span>
+        </div>
+
+        <div class="method-section">
+            <div class="method-title">🎧 Methode 1: Direkter Audio-Stream</div>
+            <div class="audio-controls">
+                <button onclick="playDirectStream()">▶️ Direkten Stream abspielen</button>
+                <audio id="directAudio" controls class="audio-element" style="display:none;">
+                    <source id="directSource" type="audio/webm">
+                    Ihr Browser unterstützt das Audio-Element nicht.
+                </audio>
+            </div>
+            <div class="stream-url">https://192.168.188.90:6969/client/192.168.188.28/stream</div>
+        </div>
+
+        <div class="method-section">
+            <div class="method-title">🔄 Methode 2: Kontinuierlicher Stream</div>
+            <div class="audio-controls">
+                <button onclick="startContinuousStream()">▶️ Kontinuierlichen Stream starten</button>
+                <button onclick="stopContinuousStream()" disabled>⏹️ Stream stoppen</button>
+                <audio id="continuousAudio" controls class="audio-element" style="display:none;"></audio>
+            </div>
+            <div id="streamInfo" class="status" style="display:none;"></div>
+        </div>
+
+        <div class="method-section">
+            <div class="method-title">📡 Methode 3: Chunked Audio Stream</div>
+            <div class="audio-controls">
+                <button onclick="playChunkedStream()">▶️ Chunked Stream abspielen</button>
+                <audio id="chunkedAudio" controls class="audio-element" style="display:none;">
+                    <source id="chunkedSource" type="audio/webm">
+                    Ihr Browser unterstützt das Audio-Element nicht.
+                </audio>
+            </div>
+            <div class="stream-url">https://192.168.188.90:6969/client/192.168.188.28/audio</div>
+        </div>
+
+        <div id="statusLog" class="status"></div>
+    </div>
+
+    <script>
+        let continuousInterval = null;
+        let audioContext = null;
+        let currentSource = null;
+
+        // Status prüfen
+        async function checkServerStatus() {
+            try {
+                const response = await fetch('https://192.168.188.90:6969/api/streams');
+                const data = await response.json();
+                const statusElement = document.getElementById('connectionStatus');
+                
+                if (data.success) {
+                    statusElement.textContent = `Online - ${data.totalStreams} aktive Streams`;
+                    statusElement.style.color = '#4ECDC4';
+                } else {
+                    statusElement.textContent = 'Server erreichbar, aber keine Streams';
+                    statusElement.style.color = '#FFE66D';
+                }
+            } catch (error) {
+                document.getElementById('connectionStatus').textContent = 'Server nicht erreichbar';
+                document.getElementById('connectionStatus').style.color = '#FF6B6B';
+            }
+        }
+
+        // Direkter Stream
+        function playDirectStream() {
+            const audio = document.getElementById('directAudio');
+            const source = document.getElementById('directSource');
+            
+            // Füge timestamp hinzu um Caching zu vermeiden
+            const streamUrl = 'https://192.168.188.90:6969/client/192.168.188.28/stream?t=' + Date.now();
+            source.src = streamUrl;
+            
+            audio.style.display = 'block';
+            audio.load();
+            
+            logStatus('Direkter Stream wird geladen...', 'status');
+            
+            audio.addEventListener('loadstart', () => logStatus('Stream lädt...', 'status'));
+            audio.addEventListener('canplay', () => logStatus('Stream bereit zum Abspielen!', 'success'));
+            audio.addEventListener('error', (e) => {
+                logStatus('Fehler beim Laden des Streams: ' + e.message, 'error');
+                console.error('Audio error:', e);
+            });
+            
+            setTimeout(() => {
+                audio.play().catch(err => {
+                    logStatus('Autoplay blockiert - bitte manuell abspielen', 'error');
+                    console.error('Play error:', err);
+                });
+            }, 1000);
+        }
+
+        // Kontinuierlicher Stream
+        function startContinuousStream() {
+            if (continuousInterval) return;
+            
+            const audio = document.getElementById('continuousAudio');
+            const info = document.getElementById('streamInfo');
+            
+            audio.style.display = 'block';
+            info.style.display = 'block';
+            
+            document.querySelector('[onclick="startContinuousStream()"]').disabled = true;
+            document.querySelector('[onclick="stopContinuousStream()"]').disabled = false;
+            
+            logStatus('Kontinuierlicher Stream gestartet...', 'success');
+            
+            let updateCount = 0;
+            continuousInterval = setInterval(async () => {
+                try {
+                    const response = await fetch('https://192.168.188.90:6969/client/192.168.188.28/stream?t=' + Date.now());
+                    
+                    if (response.ok) {
+                        const blob = await response.blob();
+                        const audioUrl = URL.createObjectURL(blob);
+                        
+                        // Erstelle neue Audio-Quelle
+                        audio.src = audioUrl;
+                        updateCount++;
+                        
+                        info.innerHTML = `
+                            <strong>Stream Updates:</strong> ${updateCount}<br>
+                            <strong>Letzte Aktualisierung:</strong> ${new Date().toLocaleTimeString()}<br>
+                            <strong>Datengröße:</strong> ${(blob.size / 1024).toFixed(1)} KB
+                        `;
+                        
+                        // Spiele automatisch ab wenn möglich
+                        if (updateCount === 1) {
+                            audio.play().catch(err => console.log('Autoplay blocked'));
+                        }
+                        
+                    } else {
+                        logStatus('Stream nicht verfügbar: ' + response.status, 'error');
+                    }
+                } catch (error) {
+                    logStatus('Fehler beim Stream-Update: ' + error.message, 'error');
+                }
+            }, 3000); // Alle 3 Sekunden aktualisieren
+        }
+
+        function stopContinuousStream() {
+            if (continuousInterval) {
+                clearInterval(continuousInterval);
+                continuousInterval = null;
+                
+                document.getElementById('continuousAudio').pause();
+                document.querySelector('[onclick="startContinuousStream()"]').disabled = false;
+                document.querySelector('[onclick="stopContinuousStream()"]').disabled = true;
+                
+                logStatus('Kontinuierlicher Stream gestoppt', 'status');
+            }
+        }
+
+        // Chunked Stream
+        function playChunkedStream() {
+            const audio = document.getElementById('chunkedAudio');
+            const source = document.getElementById('chunkedSource');
+            
+            const streamUrl = 'https://192.168.188.90:6969/client/192.168.188.28/audio?t=' + Date.now();
+            source.src = streamUrl;
+            
+            audio.style.display = 'block';
+            audio.load();
+            
+            logStatus('Chunked Stream wird geladen...', 'status');
+            
+            audio.addEventListener('loadstart', () => logStatus('Chunked Stream lädt...', 'status'));
+            audio.addEventListener('canplay', () => logStatus('Chunked Stream bereit!', 'success'));
+            audio.addEventListener('error', (e) => {
+                logStatus('Fehler beim Chunked Stream: ' + e.message, 'error');
+            });
+            
+            setTimeout(() => {
+                audio.play().catch(err => {
+                    logStatus('Autoplay blockiert - bitte manuell abspielen', 'error');
+                });
+            }, 1000);
+        }
+
+        function logStatus(message, type = 'status') {
+            const log = document.getElementById('statusLog');
+            const timestamp = new Date().toLocaleTimeString();
+            log.innerHTML = `<strong>[${timestamp}]</strong> ${message}`;
+            log.className = 'status ' + type;
+        }
+
+        // Initialize
+        checkServerStatus();
+        setInterval(checkServerStatus, 30000); // Status alle 30 Sekunden prüfen
+
+        // Cleanup bei Seitenverlassen
+        window.addEventListener('beforeunload', () => {
+            if (continuousInterval) {
+                clearInterval(continuousInterval);
+            }
+        });
+    </script>
+</body>
+</html>
