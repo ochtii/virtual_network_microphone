@@ -312,6 +312,7 @@ class AudioStreamHandler:
         if client_ip in self.audio_clients:
             self.audio_clients[client_ip]['buffer'] += data
             self.audio_clients[client_ip]['last_data'] = time.time()
+            logger.info(f"Audio data received from {client_ip}: {len(data)} bytes, buffer size: {len(self.audio_clients[client_ip]['buffer'])} bytes")
             # In a full implementation, this would forward to stream endpoints
             
     def get_audio_stream(self, client_ip):
