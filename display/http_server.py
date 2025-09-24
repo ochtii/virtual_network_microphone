@@ -411,14 +411,24 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
             # Berechne Geschwindigkeiten
             time_diff = current_time - self.__class__._network_stats['last_time']
             
-            if time_diff > 0 and self.__class__._network_stats['last_bytes_sent'] > 0:
+            if time_diff > 0.5 and self.__class__._network_stats['last_bytes_sent'] > 0:  # Mindestens 0.5s warten
                 bytes_sent_diff = bytes_sent - self.__class__._network_stats['last_bytes_sent']
                 bytes_recv_diff = bytes_recv - self.__class__._network_stats['last_bytes_recv']
                 
-                # Berechne Mbps (nur positive Werte)
+                # Berechne Mbps (nur positive Werte und realistische Limits)
                 if bytes_sent_diff >= 0 and bytes_recv_diff >= 0:
                     download_mbps = (bytes_recv_diff * 8) / (time_diff * 1000000)  # Mbps
                     upload_mbps = (bytes_sent_diff * 8) / (time_diff * 1000000)    # Mbps
+                    
+                    # Realistische Limits (max 1 Gbps für Raspberry Pi)
+                    download_mbps = min(download_mbps, 1000.0)
+                    upload_mbps = min(upload_mbps, 1000.0)
+                    
+                    # Ignoriere unrealistisch hohe Spitzen (über 100 Mbps für Pi)
+                    if download_mbps > 100.0 or upload_mbps > 100.0:
+                        print(f"Ignoring unrealistic speed: {download_mbps:.2f}/{upload_mbps:.2f} Mbps")
+                        download_mbps = 0
+                        upload_mbps = 0
                     
                     # Aktualisiere Statistiken
                     self.__class__._network_stats['last_bytes_sent'] = bytes_sent
@@ -436,15 +446,18 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
                         # Speichere nach Tages-Reset
                         save_network_stats(self.__class__._network_stats)
                     
-                    # Aktualisiere Max-Werte
-                    if download_mbps > self.__class__._network_stats['max_download_today']:
-                        self.__class__._network_stats['max_download_today'] = download_mbps
-                    if upload_mbps > self.__class__._network_stats['max_upload_today']:
-                        self.__class__._network_stats['max_upload_today'] = upload_mbps
-                    if download_mbps > self.__class__._network_stats['max_download_alltime']:
-                        self.__class__._network_stats['max_download_alltime'] = download_mbps
-                    if upload_mbps > self.__class__._network_stats['max_upload_alltime']:
-                        self.__class__._network_stats['max_upload_alltime'] = upload_mbps
+                    # Aktualisiere Max-Werte nur bei realistischen Geschwindigkeiten
+                    if download_mbps > 0 and download_mbps <= 100.0:
+                        if download_mbps > self.__class__._network_stats['max_download_today']:
+                            self.__class__._network_stats['max_download_today'] = download_mbps
+                        if download_mbps > self.__class__._network_stats['max_download_alltime']:
+                            self.__class__._network_stats['max_download_alltime'] = download_mbps
+                            
+                    if upload_mbps > 0 and upload_mbps <= 100.0:
+                        if upload_mbps > self.__class__._network_stats['max_upload_today']:
+                            self.__class__._network_stats['max_upload_today'] = upload_mbps
+                        if upload_mbps > self.__class__._network_stats['max_upload_alltime']:
+                            self.__class__._network_stats['max_upload_alltime'] = upload_mbps
                     
                     # Aktualisiere Traffic-Counter
                     if bytes_recv_diff > 0:

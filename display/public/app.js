@@ -763,15 +763,45 @@ function fetchNetworkMetrics() {
                         <div class="metric-row">
                             <div class="metric-item compact">
                                 <span class="metric-label">Down:</span>
-                                <span class="metric-value">${data.total_download_today || 'N/A'}</span>
+                                <span class="metric-value">${data.total_download_today || '0 B'}</span>
                             </div>
                             <div class="metric-item compact">
                                 <span class="metric-label">Up:</span>
-                                <span class="metric-value">${data.total_upload_today || 'N/A'}</span>
+                                <span class="metric-value">${data.total_upload_today || '0 B'}</span>
                             </div>
                         </div>
                     </div>
                     ` : ''}
+                    
+                    ${data.total_download_alltime || data.total_upload_alltime ? `
+                    <div class="metric-section compact">
+                        <h4>Traffic Gesamt:</h4>
+                        <div class="metric-row">
+                            <div class="metric-item compact">
+                                <span class="metric-label">Down:</span>
+                                <span class="metric-value">${data.total_download_alltime || '0 B'}</span>
+                            </div>
+                            <div class="metric-item compact">
+                                <span class="metric-label">Up:</span>
+                                <span class="metric-value">${data.total_upload_alltime || '0 B'}</span>
+                            </div>
+                        </div>
+                    </div>
+                    ` : ''}
+                    
+                    <div class="metric-section compact">
+                        <h4>Verbindung:</h4>
+                        <div class="metric-row">
+                            <div class="metric-item compact">
+                                <span class="metric-label">IP:</span>
+                                <span class="metric-value">${data.local_ip || 'N/A'}</span>
+                            </div>
+                            <div class="metric-item compact">
+                                <span class="metric-label">Interface:</span>
+                                <span class="metric-value">${data.active_interfaces || 'N/A'}</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             `;
             
