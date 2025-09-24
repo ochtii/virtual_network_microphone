@@ -82,6 +82,17 @@ function setupNavigation() {
     setupTouchSettings();
 }
 
+// Mauszeiger Ein-/Ausblenden
+function handleCursorVisibility(hideCursor) {
+    if (hideCursor) {
+        document.body.classList.add('hide-cursor');
+    } else {
+        document.body.classList.remove('hide-cursor');
+    }
+    
+    console.log('Cursor visibility changed:', hideCursor ? 'hidden' : 'visible');
+}
+
 // Navigate between views with arrows
 function navigateToView(direction) {
     if (direction === 'next') {
@@ -195,7 +206,8 @@ function setupTouchSettings() {
         showCpuTemp: true,
         showVoltage: true,
         showUptime: true,
-        showServices: true
+        showServices: true,
+        hideCursor: false
     };
 
     // Update-Intervall Schieberegler
@@ -218,11 +230,16 @@ function setupTouchSettings() {
     }
 
     // Anzeige-Optionen Checkboxen
-    ['showCpuTemp', 'showVoltage', 'showUptime', 'showServices'].forEach(option => {
+    ['showCpuTemp', 'showVoltage', 'showUptime', 'showServices', 'hideCursor'].forEach(option => {
         const checkbox = document.getElementById(option);
         if (checkbox) {
             checkbox.addEventListener('change', () => {
                 displayOptions[option] = checkbox.checked;
+                
+                // Spezielle Behandlung für hideCursor
+                if (option === 'hideCursor') {
+                    handleCursorVisibility(checkbox.checked);
+                }
             });
         }
     });
@@ -417,6 +434,11 @@ function setupTouchSettings() {
                 const checkbox = document.getElementById(key);
                 if (checkbox) {
                     checkbox.checked = displayOptions[key];
+                    
+                    // Spezielle Behandlung für hideCursor
+                    if (key === 'hideCursor') {
+                        handleCursorVisibility(displayOptions[key]);
+                    }
                 }
             });
         } catch (e) {

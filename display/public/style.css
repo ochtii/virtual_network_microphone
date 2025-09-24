@@ -252,6 +252,19 @@ body.acid-theme::after {
     }
 }
 
+/* ===== CURSOR CONTROL ===== */
+body.hide-cursor,
+body.hide-cursor * {
+    cursor: none !important;
+}
+
+body.hide-cursor input,
+body.hide-cursor button,
+body.hide-cursor .nav-item,
+body.hide-cursor .touch-friendly {
+    cursor: none !important;
+}
+
 /* Compact Navigation Bar */
 .nav-bar {
     position: fixed;
