@@ -777,10 +777,7 @@ class HTTPHandler(SimpleHTTPRequestHandler):
     def do_OPTIONS(self):
         """Handle CORS preflight requests"""
         self.send_response(200)
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, HEAD, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization')
-        self.send_header('Access-Control-Max-Age', '86400')
+        self.add_cors_headers()
         self.end_headers()
 
     def do_HEAD(self):
@@ -788,22 +785,27 @@ class HTTPHandler(SimpleHTTPRequestHandler):
         if self.path == '/':
             self.send_response(200)
             self.send_header('Content-type', 'text/html')
+            self.add_cors_headers()
             self.end_headers()
         elif self.path == '/api/streams':
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
+            self.add_cors_headers()
             self.end_headers()
         elif self.path == '/api/config':
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
+            self.add_cors_headers()
             self.end_headers()
         elif self.path == '/api/network':
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
+            self.add_cors_headers()
             self.end_headers()
         elif self.path == '/health':
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
+            self.add_cors_headers()
             self.end_headers()
         elif self.path.startswith('/static/'):
             # Check if static file exists
@@ -820,9 +822,12 @@ class HTTPHandler(SimpleHTTPRequestHandler):
                 else:
                     content_type = 'text/plain'
                 self.send_header('Content-type', content_type)
+                self.add_cors_headers()
                 self.end_headers()
             else:
-                self.send_error(404)
+                self.send_response(404)
+                self.add_cors_headers()
+                self.end_headers()
         elif self.path.startswith('/client/') and self.path.endswith('/stream'):
             # Check if client stream is available
             path_parts = self.path.split('/')
@@ -840,17 +845,25 @@ class HTTPHandler(SimpleHTTPRequestHandler):
                     if has_data:
                         self.send_response(200)
                         self.send_header('Content-type', 'audio/webm')
-                        self.send_header('Access-Control-Allow-Origin', '*')
+                        self.add_cors_headers()
                         self.end_headers()
                     else:
-                        self.send_error(404)
+                        self.send_response(404)
+                        self.add_cors_headers()
+                        self.end_headers()
                 except Exception as e:
                     logger.error(f"Error checking audio data for {client_ip}: {e}")
-                    self.send_error(500)
+                    self.send_response(500)
+                    self.add_cors_headers()
+                    self.end_headers()
             else:
-                self.send_error(400)
+                self.send_response(400)
+                self.add_cors_headers()
+                self.end_headers()
         else:
-            self.send_error(404)
+            self.send_response(404)
+            self.add_cors_headers()
+            self.end_headers()
     
     def handle_websocket_upgrade(self):
         """Handle WebSocket upgrade request"""
@@ -1453,6 +1466,7 @@ class HTTPHandler(SimpleHTTPRequestHandler):
             
             self.send_response(200)
             self.send_header('Content-type', 'text/html; charset=utf-8')
+            self.add_cors_headers()
             self.end_headers()
             self.wfile.write(html_content.encode('utf-8'))
             
@@ -1550,6 +1564,7 @@ class HTTPHandler(SimpleHTTPRequestHandler):
                 self.send_response(200)
                 self.send_header('Content-type', content_type)
                 self.send_header('Content-Length', str(len(content)))
+                self.add_cors_headers()
                 self.end_headers()
                 self.wfile.write(content)
             else:
@@ -1560,6 +1575,7 @@ class HTTPHandler(SimpleHTTPRequestHandler):
                 self.send_response(200)
                 self.send_header('Content-type', content_type)
                 self.send_header('Content-Length', str(len(content.encode('utf-8'))))
+                self.add_cors_headers()
                 self.end_headers()
                 self.wfile.write(content.encode('utf-8'))
             
@@ -1567,13 +1583,18 @@ class HTTPHandler(SimpleHTTPRequestHandler):
             logger.error(f"Error serving static file {file_path}: {e}")
             self.send_error(500)
     
+    def add_cors_headers(self):
+        """Add CORS headers to response"""
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, HEAD, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization')
+        self.send_header('Access-Control-Max-Age', '86400')
+
     def send_json_response(self, data):
         """Send JSON response"""
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.add_cors_headers()
         self.end_headers()
         self.wfile.write(json.dumps(data, ensure_ascii=False).encode('utf-8'))
 
