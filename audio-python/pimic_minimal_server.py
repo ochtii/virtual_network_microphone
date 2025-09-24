@@ -558,14 +558,25 @@ class HTTPHandler(SimpleHTTPRequestHandler):
             path_parts = self.path.split('/')
             if len(path_parts) >= 3:
                 client_ip = path_parts[2]
+                # Initialize global audio handler if not exists
+                global global_audio_handler
+                if global_audio_handler is None:
+                    global_audio_handler = AudioStreamHandler()
+                
                 # Check if we have audio data for this client
-                if global_audio_handler and global_audio_handler.has_audio_data(client_ip):
-                    self.send_response(200)
-                    self.send_header('Content-type', 'audio/webm')
-                    self.send_header('Access-Control-Allow-Origin', '*')
-                    self.end_headers()
-                else:
-                    self.send_error(404)
+                try:
+                    has_data = global_audio_handler.has_audio_data(client_ip)
+                    logger.info(f"HEAD request for {client_ip}: has_data={has_data}")
+                    if has_data:
+                        self.send_response(200)
+                        self.send_header('Content-type', 'audio/webm')
+                        self.send_header('Access-Control-Allow-Origin', '*')
+                        self.end_headers()
+                    else:
+                        self.send_error(404)
+                except Exception as e:
+                    logger.error(f"Error checking audio data for {client_ip}: {e}")
+                    self.send_error(500)
             else:
                 self.send_error(400)
         else:
