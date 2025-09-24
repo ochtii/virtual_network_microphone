@@ -348,8 +348,16 @@ class AudioStreamHandler:
         if client_ip in self.audio_clients:
             client_data = self.audio_clients[client_ip]
             buffer = client_data['buffer']
-            client_data['buffer'] = b''  # Clear buffer after reading
-            return buffer
+            
+            # For continuous streaming, return data and keep some in buffer
+            # Only clear buffer if it's getting too large (> 1MB)
+            if len(buffer) > 1024 * 1024:  # 1MB limit
+                # Keep the last 100KB for continuity
+                client_data['buffer'] = buffer[-100*1024:]
+                return buffer[:-100*1024]
+            else:
+                # Return a copy of buffer without clearing it
+                return buffer
         return b''
 
 
@@ -530,6 +538,7 @@ class HTTPHandler(SimpleHTTPRequestHandler):
                     self.send_header('Content-Type', 'audio/webm')
                     self.send_header('Access-Control-Allow-Origin', '*')
                     self.send_header('Cache-Control', 'no-cache')
+                    self.send_header('Accept-Ranges', 'bytes')
                     self.end_headers()
                     
                     self.wfile.write(audio_data)
