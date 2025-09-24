@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PIMIC Simple Stream Test</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: #222; 
+            color: white; 
+        }
+        .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+        }
+        button { 
+            padding: 10px 20px; 
+            margin: 10px; 
+            font-size: 16px; 
+            background: #4CAF50; 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+        }
+        button:hover { background: #45a049; }
+        #log { 
+            background: #333; 
+            padding: 10px; 
+            height: 200px; 
+            overflow-y: scroll; 
+            font-family: monospace; 
+            font-size: 12px; 
+            margin-top: 20px; 
+        }
+        audio { 
+            width: 100%; 
+            margin: 20px 0; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 PIMIC Stream Test</h1>
+        
+        <div>
+            <h3>Direct Audio Stream Test</h3>
+            <audio id="audioStream" controls preload="none">
+                Your browser doesn't support audio streaming
+            </audio>
+        </div>
+        
+        <div>
+            <button onclick="testDirectStream()">Test Direct Stream</button>
+            <button onclick="testStreamInfo()">Check Stream Info</button>
+            <button onclick="testStreamData()">Test Stream Data</button>
+            <button onclick="clearLog()">Clear Log</button>
+        </div>
+        
+        <div id="log"></div>
+    </div>
+
+    <script>
+        let log = document.getElementById('log');
+        
+        function addLog(message) {
+            const time = new Date().toLocaleTimeString();
+            log.innerHTML += `[${time}] ${message}<br>`;
+            log.scrollTop = log.scrollHeight;
+            console.log(message);
+        }
+        
+        function clearLog() {
+            log.innerHTML = '';
+        }
+        
+        async function testDirectStream() {
+            addLog('Testing direct audio stream...');
+            
+            const audio = document.getElementById('audioStream');
+            const streamUrl = `https://${window.location.host}/client/192.168.188.28/stream`;
+            
+            addLog(`Stream URL: ${streamUrl}`);
+            
+            audio.src = streamUrl;
+            
+            audio.onloadstart = () => addLog('Audio: Load started');
+            audio.onloadeddata = () => addLog('Audio: Data loaded');
+            audio.oncanplay = () => addLog('Audio: Can play');
+            audio.oncanplaythrough = () => addLog('Audio: Can play through');
+            audio.onplay = () => addLog('Audio: Playing started');
+            audio.onpause = () => addLog('Audio: Paused');
+            audio.onerror = (e) => addLog(`Audio Error: ${e.target.error?.message || 'Unknown error'}`);
+            audio.onstalled = () => addLog('Audio: Stalled');
+            audio.onwaiting = () => addLog('Audio: Waiting for data');
+            
+            try {
+                await audio.play();
+                addLog('Play command executed successfully');
+            } catch (error) {
+                addLog(`Play failed: ${error.message}`);
+            }
+        }
+        
+        async function testStreamInfo() {
+            addLog('Checking stream info...');
+            
+            try {
+                const response = await fetch('/api/streams');
+                const data = await response.json();
+                addLog(`Stream info: ${JSON.stringify(data, null, 2)}`);
+                
+                if (data.streams && data.streams.length > 0) {
+                    const stream = data.streams[0];
+                    addLog(`Found active stream for client: ${stream.client_ip}`);
+                    addLog(`Stream URL: ${stream.stream_url}`);
+                }
+            } catch (error) {
+                addLog(`Stream info error: ${error.message}`);
+            }
+        }
+        
+        async function testStreamData() {
+            addLog('Testing stream data fetch...');
+            
+            const streamUrl = `https://${window.location.host}/client/192.168.188.28/stream`;
+            
+            try {
+                const response = await fetch(streamUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Range': 'bytes=0-1023'  // Request first 1KB
+                    }
+                });
+                
+                addLog(`Response status: ${response.status}`);
+                addLog(`Response headers: ${JSON.stringify([...response.headers], null, 2)}`);
+                
+                if (response.ok) {
+                    const buffer = await response.arrayBuffer();
+                    addLog(`Received ${buffer.byteLength} bytes of audio data`);
+                    
+                    // Show first few bytes as hex
+                    const view = new Uint8Array(buffer);
+                    const hex = Array.from(view.slice(0, 16))
+                        .map(b => b.toString(16).padStart(2, '0'))
+                        .join(' ');
+                    addLog(`First 16 bytes: ${hex}`);
+                } else {
+                    addLog(`Stream fetch failed: ${response.statusText}`);
+                }
+            } catch (error) {
+                addLog(`Stream data error: ${error.message}`);
+            }
+        }
+        
+        // Auto-test on load
+        window.onload = () => {
+            addLog('PIMIC Stream Test loaded');
+            testStreamInfo();
+        };
+    </script>
+</body>
+</html>
