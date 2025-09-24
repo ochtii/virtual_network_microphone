@@ -33,6 +33,19 @@ class PimicAudioClient {
             }
         });
         
+        // Stream URL Action Buttons
+        document.getElementById('openStreamBtn').addEventListener('click', () => {
+            this.openStreamUrl();
+        });
+        
+        document.getElementById('copyStreamBtn').addEventListener('click', () => {
+            this.copyStreamUrl();
+        });
+        
+        document.getElementById('shareStreamBtn').addEventListener('click', () => {
+            this.shareStreamUrl();
+        });
+        
         // Refresh data periodically
         setInterval(() => this.loadData(), 5000);
     }
@@ -157,9 +170,6 @@ class PimicAudioClient {
                 };
                 
                 this.updateStreamControls();
-                document.getElementById('currentStreamId').textContent = result.streamId;
-                document.getElementById('currentStreamPort').textContent = result.port;
-                document.getElementById('streamInfo').style.display = 'block';
                 
                 // Start audio monitoring
                 this.startAudioMonitoring();
@@ -359,13 +369,31 @@ class PimicAudioClient {
     
     updateStreamControls() {
         const btn = document.getElementById('startStopBtn');
+        const settingsSection = document.querySelector('.controls');
+        const streamUrlSection = document.getElementById('streamUrlSection');
+        
         if (this.currentStream) {
+            // Stream ist aktiv - zeige URL-Sektion, verstecke Settings
             btn.innerHTML = '<span>⏹️ Stream Stoppen</span>';
             btn.className = 'streaming';
+            
+            // Settings ausblenden
+            settingsSection.style.display = 'none';
+            
+            // Stream URL Sektion anzeigen
+            streamUrlSection.style.display = 'block';
+            this.updateStreamUrlDisplay();
+            
         } else {
+            // Kein Stream - zeige Settings, verstecke URL-Sektion
             btn.innerHTML = '<span>▶️ Stream Starten</span>';
             btn.className = '';
-            document.getElementById('streamInfo').style.display = 'none';
+            
+            // Settings anzeigen
+            settingsSection.style.display = 'grid';
+            
+            // Stream URL Sektion verstecken
+            streamUrlSection.style.display = 'none';
         }
     }
     
@@ -448,6 +476,99 @@ class PimicAudioClient {
                 <p><strong>Performance:</strong> ⚡ Lightweight & Pi-optimized</p>
             </div>
         `;
+    }
+    
+    updateStreamUrlDisplay() {
+        if (this.currentStream) {
+            const streamUrl = `${window.location.origin}/stream/${this.currentStream.id}`;
+            
+            document.getElementById('streamUrl').value = streamUrl;
+            document.getElementById('activeStreamId').textContent = this.currentStream.id;
+            document.getElementById('activeStreamPort').textContent = this.currentStream.port;
+        }
+    }
+    
+    openStreamUrl() {
+        if (this.currentStream) {
+            const streamUrl = `${window.location.origin}/stream/${this.currentStream.id}`;
+            window.open(streamUrl, '_blank');
+        }
+    }
+    
+    async copyStreamUrl() {
+        if (this.currentStream) {
+            const streamUrl = `${window.location.origin}/stream/${this.currentStream.id}`;
+            try {
+                await navigator.clipboard.writeText(streamUrl);
+                
+                // Visual feedback
+                const btn = document.getElementById('copyStreamBtn');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '✅ Kopiert!';
+                btn.style.background = 'linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%)';
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.style.background = '';
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Copy failed:', error);
+                alert('Kopieren fehlgeschlagen. URL: ' + streamUrl);
+            }
+        }
+    }
+    
+    shareStreamUrl() {
+        if (this.currentStream) {
+            const streamUrl = `${window.location.origin}/stream/${this.currentStream.id}`;
+            
+            if (navigator.share) {
+                // Native Web Share API
+                navigator.share({
+                    title: 'PIMIC Audio Stream',
+                    text: 'Höre meinen Audio-Stream',
+                    url: streamUrl
+                }).catch(console.error);
+            } else {
+                // Fallback: Show share options
+                const shareText = `Höre meinen Audio-Stream: ${streamUrl}`;
+                
+                // Create share modal
+                const modal = document.createElement('div');
+                modal.style.cssText = `
+                    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                    background: rgba(0,0,0,0.5); display: flex; align-items: center;
+                    justify-content: center; z-index: 1000;
+                `;
+                
+                modal.innerHTML = `
+                    <div style="background: white; padding: 30px; border-radius: 10px; max-width: 400px; text-align: center;">
+                        <h3>🔗 Stream teilen</h3>
+                        <p style="margin: 15px 0;">${shareText}</p>
+                        <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+                            <button onclick="window.open('https://wa.me/?text=${encodeURIComponent(shareText)}', '_blank')" 
+                                    style="padding: 10px 15px; background: #25D366; color: white; border: none; border-radius: 5px;">
+                                💬 WhatsApp
+                            </button>
+                            <button onclick="window.open('https://t.me/share/url?url=${encodeURIComponent(streamUrl)}&text=${encodeURIComponent('Höre meinen Audio-Stream')}', '_blank')" 
+                                    style="padding: 10px 15px; background: #0088CC; color: white; border: none; border-radius: 5px;">
+                                ✈️ Telegram
+                            </button>
+                            <button onclick="this.parentElement.parentElement.parentElement.remove()" 
+                                    style="padding: 10px 15px; background: #666; color: white; border: none; border-radius: 5px;">
+                                Schließen
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) modal.remove();
+                });
+            }
+        }
     }
 }
 

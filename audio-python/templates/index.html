@@ -48,14 +48,30 @@
                     </div>
                 </div>
                 
+                <!-- Stream URL Section (hidden by default) -->
+                <div id="streamUrlSection" style="display:none;">
+                    <div class="stream-url-container">
+                        <h3>🔗 Stream URL</h3>
+                        <div class="url-display">
+                            <input type="text" id="streamUrl" readonly class="url-input">
+                            <div class="url-actions">
+                                <button id="openStreamBtn" class="action-btn">🌐 Öffnen</button>
+                                <button id="copyStreamBtn" class="action-btn">📋 Kopieren</button>
+                                <button id="shareStreamBtn" class="action-btn">📤 Teilen</button>
+                            </div>
+                        </div>
+                        <div class="stream-details">
+                            <p><strong>Stream ID:</strong> <span id="activeStreamId">-</span></p>
+                            <p><strong>Port:</strong> <span id="activeStreamPort">-</span></p>
+                            <p><strong>Status:</strong> <span id="streamStatus">🟢 Aktiv</span></p>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="stream-controls">
                     <button id="startStopBtn">
                         <span>▶️ Stream Starten</span>
                     </button>
-                    <div id="streamInfo" style="display:none;">
-                        <p><strong>Stream ID:</strong> <span id="currentStreamId">-</span></p>
-                        <p><strong>Port:</strong> <span id="currentStreamPort">-</span></p>
-                    </div>
                 </div>
             </section>
 
