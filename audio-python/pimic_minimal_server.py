@@ -1169,7 +1169,7 @@ class PimicAudioServer:
         self.network_discovery = NetworkDiscovery()
         self.network_discovery.start_discovery()
         
-        # Start HTTP server with threading support
+        # Start HTTPS server with threading support
         self.http_server = ThreadingHTTPServer(("0.0.0.0", CONFIG['web_port']), HTTPHandler)
         
         # Check for HTTPS certificates and setup SSL context
@@ -1201,6 +1201,23 @@ class PimicAudioServer:
             logger.info("📡 HTTP server (no SSL certificates found)")
             print(f"⚠️  HTTP only: Microphone access requires HTTPS in modern browsers")
             print(f"💡 For HTTPS, generate certificates or use localhost")
+        
+        # Start additional HTTP server on port 8080 for dashboard access
+        def start_http_server():
+            try:
+                http_port = 8080
+                http_server = ThreadingHTTPServer(("0.0.0.0", http_port), HTTPHandler)
+                logger.info(f"📡 Additional HTTP server started on port {http_port}")
+                print(f"🌍 HTTP Dashboard: http://{self.get_server_ip()}:{http_port}/static/dashboard.html")
+                print(f"🌍 HTTP Access: http://{self.get_server_ip()}:{http_port}/")
+                http_server.serve_forever()
+            except Exception as e:
+                logger.error(f"HTTP server failed: {e}")
+        
+        # Start HTTP server in background thread
+        import threading
+        http_thread = threading.Thread(target=start_http_server, daemon=True)
+        http_thread.start()
         
         # Setup signal handlers
         signal.signal(signal.SIGINT, self.signal_handler)

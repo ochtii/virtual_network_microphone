@@ -297,7 +297,10 @@
         let isAutoRefresh = true;
         let streamPlayers = new Map();
         
-        const SERVER_BASE = 'https://192.168.188.90:6969';
+        // Auto-detect protocol and port
+        const isHTTPS = window.location.protocol === 'https:';
+        const SERVER_BASE = isHTTPS ? 'https://192.168.188.90:6969' : 'https://192.168.188.90:6969';
+        const HTTP_FALLBACK = 'http://192.168.188.90:8080';
         
         // Initialize dashboard
         async function initDashboard() {
@@ -307,18 +310,31 @@
         
         // Refresh stream data
         async function refreshStreams() {
+            let serverBase = SERVER_BASE;
+            
             try {
-                // Get server status and streams
-                const [healthResponse, streamsResponse] = await Promise.all([
-                    fetch(`${SERVER_BASE}/health`),
-                    fetch(`${SERVER_BASE}/api/streams`)
-                ]);
+                // Try HTTPS first, then HTTP fallback
+                let healthResponse, streamsResponse;
+                
+                try {
+                    [healthResponse, streamsResponse] = await Promise.all([
+                        fetch(`${SERVER_BASE}/health`),
+                        fetch(`${SERVER_BASE}/api/streams`)
+                    ]);
+                } catch (httpsError) {
+                    console.log('HTTPS failed, trying HTTP fallback');
+                    serverBase = HTTP_FALLBACK;
+                    [healthResponse, streamsResponse] = await Promise.all([
+                        fetch(`${HTTP_FALLBACK}/health`),
+                        fetch(`${HTTP_FALLBACK}/api/streams`)
+                    ]);
+                }
                 
                 const health = await healthResponse.json();
                 const streams = await streamsResponse.json();
                 
-                updateServerInfo(health, streams);
-                updateStreamCards(streams);
+                updateServerInfo(health, streams, serverBase);
+                updateStreamCards(streams, serverBase);
                 
             } catch (error) {
                 console.error('Error refreshing streams:', error);
@@ -328,14 +344,15 @@
         }
         
         // Update server information
-        function updateServerInfo(health, streams) {
+        function updateServerInfo(health, streams, serverBase) {
             const serverStatus = document.getElementById('serverStatus');
             const streamCount = document.getElementById('streamCount');
             const connectionCount = document.getElementById('connectionCount');
             const lastUpdate = document.getElementById('lastUpdate');
             
             if (health.status === 'healthy') {
-                serverStatus.textContent = 'Online';
+                const protocol = serverBase.includes('https') ? 'HTTPS' : 'HTTP';
+                serverStatus.textContent = `Online (${protocol})`;
                 serverStatus.className = 'status-online';
             } else {
                 serverStatus.textContent = 'Probleme';
@@ -357,42 +374,55 @@
         }
         
         // Update stream cards
-        async function updateStreamCards(data) {
+        async function updateStreamCards(data, serverBase) {
             const container = document.getElementById('streamsContainer');
             
             // Find active clients by checking recent activity
-            const activeClients = await findActiveClients();
+            const activeClients = await findActiveClients(serverBase);
             
             if (activeClients.length === 0) {
                 container.innerHTML = `
                     <div class="no-streams">
                         <h2>📵 Keine aktiven Streams</h2>
                         <p>Starte die Mikrofon-App auf einem Client, um Streams zu sehen.</p>
-                        <p>Oder besuche: <code>${SERVER_BASE}</code></p>
+                        <p>Oder besuche: <code>${serverBase || SERVER_BASE}</code></p>
                     </div>
                 `;
                 return;
             }
             
-            const streamCards = activeClients.map(clientIP => createStreamCard(clientIP)).join('');
+            const streamCards = activeClients.map(clientIP => createStreamCard(clientIP, serverBase)).join('');
             container.innerHTML = streamCards;
         }
         
         // Find active clients by testing stream endpoints
-        async function findActiveClients() {
+        async function findActiveClients(serverBase) {
             const knownClients = ['192.168.188.28', '192.168.188.49']; // Add known clients
             const activeClients = [];
+            const baseUrl = serverBase || SERVER_BASE;
             
             for (const clientIP of knownClients) {
                 try {
-                    const response = await fetch(`${SERVER_BASE}/client/${clientIP}/stream`, {
+                    const response = await fetch(`${baseUrl}/client/${clientIP}/stream`, {
                         method: 'HEAD'
                     });
                     if (response.ok) {
                         activeClients.push(clientIP);
                     }
                 } catch (error) {
-                    // Client not active
+                    // Try HTTP fallback if HTTPS fails
+                    if (baseUrl.includes('https')) {
+                        try {
+                            const httpResponse = await fetch(`${HTTP_FALLBACK}/client/${clientIP}/stream`, {
+                                method: 'HEAD'
+                            });
+                            if (httpResponse.ok) {
+                                activeClients.push(clientIP);
+                            }
+                        } catch (httpError) {
+                            // Client not active
+                        }
+                    }
                 }
             }
             
@@ -419,7 +449,7 @@
                     
                     <div class="audio-controls">
                         <div class="control-buttons">
-                            <button class="control-btn" onclick="playStream('${clientIP}', '${playerId}')">
+                            <button class="control-btn" onclick="playStream('${clientIP}', '${playerId}', '${serverBase}')">
                                 ▶️ Abspielen
                             </button>
                             <button class="control-btn" onclick="pauseStream('${playerId}')">
@@ -465,7 +495,7 @@
         }
         
         // Play stream
-        async function playStream(clientIP, playerId) {
+        async function playStream(clientIP, playerId, serverBase) {
             const audio = document.getElementById(playerId);
             const source = audio.querySelector('source');
             const statusElement = document.getElementById(`status_${playerId}`);
@@ -475,7 +505,8 @@
                 statusElement.textContent = 'Lädt...';
                 infoElement.textContent = 'Stream wird geladen...';
                 
-                const streamUrl = `${SERVER_BASE}/client/${clientIP}/stream?t=${Date.now()}`;
+                const baseUrl = serverBase || SERVER_BASE;
+                let streamUrl = `${baseUrl}/client/${clientIP}/stream?t=${Date.now()}`;
                 source.src = streamUrl;
                 audio.load();
                 
@@ -506,10 +537,22 @@
                     if (player) player.isPlaying = false;
                 });
                 
-                audio.addEventListener('error', (e) => {
-                    statusElement.textContent = 'Fehler';
-                    infoElement.textContent = 'Fehler beim Laden: ' + e.type;
+                audio.addEventListener('error', async (e) => {
                     console.error('Audio error for', clientIP, ':', e);
+                    
+                    // Try HTTP fallback if HTTPS failed
+                    if (baseUrl.includes('https') && !source.src.includes('8080')) {
+                        console.log('Trying HTTP fallback for', clientIP);
+                        statusElement.textContent = 'Fallback...';
+                        infoElement.textContent = 'Versuche HTTP Fallback...';
+                        
+                        const fallbackUrl = `${HTTP_FALLBACK}/client/${clientIP}/stream?t=${Date.now()}`;
+                        source.src = fallbackUrl;
+                        audio.load();
+                    } else {
+                        statusElement.textContent = 'Fehler';
+                        infoElement.textContent = 'Fehler beim Laden: ' + e.type;
+                    }
                 });
                 
                 // Try to play after a short delay
@@ -550,10 +593,10 @@
         }
         
         // Refresh stream
-        function refreshStream(clientIP, playerId) {
+        function refreshStream(clientIP, playerId, serverBase) {
             const player = streamPlayers.get(playerId);
             if (player && player.isPlaying) {
-                playStream(clientIP, playerId);
+                playStream(clientIP, playerId, serverBase);
             }
         }
         
