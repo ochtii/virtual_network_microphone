@@ -290,6 +290,58 @@
             font-weight: bold;
         }
         
+        .live-soundwave {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 8px;
+            padding: 10px;
+            margin: 10px 0;
+            height: 80px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .soundwave-canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 4px;
+        }
+        
+        .soundwave-info {
+            position: absolute;
+            top: 5px;
+            right: 8px;
+            font-size: 0.75em;
+            color: #FFE66D;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        
+        .level-indicators {
+            display: flex;
+            gap: 2px;
+            align-items: flex-end;
+            height: 30px;
+            margin: 5px 0;
+        }
+        
+        .level-bar {
+            width: 4px;
+            background: linear-gradient(to top, #4ECDC4, #FFE66D, #FF6B6B);
+            border-radius: 2px;
+            transition: height 0.1s ease;
+            min-height: 2px;
+            opacity: 0.8;
+        }
+        
+        .audio-status {
+            font-size: 0.8em;
+            color: #FFE66D;
+            margin-top: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+        
         .stream-info {
             background: rgba(0, 0, 0, 0.2);
             padding: 10px;
@@ -567,6 +619,19 @@
                             </div>
                         </div>
                         <div class="stream-status status-active">🟢 Aktiv</div>
+                    </div>
+                    
+                    <!-- Live Soundwave (always visible) -->
+                    <div class="live-soundwave">
+                        <canvas id="soundwave_${playerId}" class="soundwave-canvas"></canvas>
+                        <div class="soundwave-info" id="soundwaveInfo_${playerId}">🔇 Kein Signal</div>
+                        <div class="level-indicators" id="levelBars_${playerId}">
+                            ${Array.from({length: 20}, (_, i) => `<div class="level-bar" style="height: 2px;"></div>`).join('')}
+                        </div>
+                        <div class="audio-status">
+                            <span id="audioLevel_${playerId}">Level: 0%</span>
+                            <span id="audioPeak_${playerId}">Peak: 0%</span>
+                        </div>
                     </div>
                     
                     <div class="enhanced-player">
@@ -1129,15 +1194,177 @@
                 prompt('RTP URL:', url);
             });
         }
+        
+        // Live Soundwave Functions
+        const soundwaveData = new Map();
+        const soundwaveIntervals = new Map();
+        
+        function startLiveSoundwaves() {
+            // Start updating soundwaves for all active stream cards
+            const interval = setInterval(updateAllSoundwaves, 200); // 5 FPS
+            soundwaveIntervals.set('global', interval);
+        }
+        
+        function stopLiveSoundwaves() {
+            soundwaveIntervals.forEach(interval => clearInterval(interval));
+            soundwaveIntervals.clear();
+        }
+        
+        async function updateAllSoundwaves() {
+            try {
+                // Get audio levels from API
+                const response = await fetch(`${SERVER_BASE}/api/audio/levels`);
+                const data = await response.json();
+                
+                if (data.success && data.levels) {
+                    // Update soundwave for each client
+                    Object.entries(data.levels).forEach(([clientIP, levelData]) => {
+                        const playerId = `player_${clientIP.replace(/\./g, '_')}`;
+                        updateSoundwaveVisualization(playerId, clientIP, levelData);
+                    });
+                    
+                    // Update inactive clients
+                    streamPlayers.forEach((player, playerId) => {
+                        if (!data.levels[player.clientIP]) {
+                            updateSoundwaveVisualization(playerId, player.clientIP, {
+                                level: 0, peak: 0, active: false
+                            });
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Soundwave update error:', error);
+            }
+        }
+        
+        function updateSoundwaveVisualization(playerId, clientIP, levelData) {
+            const canvas = document.getElementById(`soundwave_${playerId}`);
+            const infoElement = document.getElementById(`soundwaveInfo_${playerId}`);
+            const levelElement = document.getElementById(`audioLevel_${playerId}`);
+            const peakElement = document.getElementById(`audioPeak_${playerId}`);
+            const levelBars = document.getElementById(`levelBars_${playerId}`);
+            
+            if (!canvas || !infoElement || !levelElement || !peakElement || !levelBars) {
+                return;
+            }
+            
+            const ctx = canvas.getContext('2d');
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            
+            // Update info display
+            if (levelData.active) {
+                infoElement.textContent = `🔊 Live Signal`;
+                infoElement.style.color = '#4ECDC4';
+                levelElement.textContent = `Level: ${levelData.level}%`;
+                peakElement.textContent = `Peak: ${levelData.peak}%`;
+            } else {
+                infoElement.textContent = `🔇 Kein Signal`;
+                infoElement.style.color = '#FF6B6B';
+                levelElement.textContent = `Level: 0%`;
+                peakElement.textContent = `Peak: 0%`;
+            }
+            
+            // Update level bars
+            const bars = levelBars.querySelectorAll('.level-bar');
+            const activeBarCount = Math.floor((levelData.level / 100) * bars.length);
+            
+            bars.forEach((bar, index) => {
+                if (index < activeBarCount && levelData.active) {
+                    const height = Math.max(2, Math.random() * 25 + (levelData.level / 100) * 20);
+                    bar.style.height = height + 'px';
+                    bar.style.opacity = '1';
+                } else {
+                    bar.style.height = '2px';
+                    bar.style.opacity = '0.3';
+                }
+            });
+            
+            // Draw soundwave on canvas
+            drawSoundwave(ctx, canvas, levelData);
+            
+            // Store data for history
+            if (!soundwaveData.has(playerId)) {
+                soundwaveData.set(playerId, []);
+            }
+            
+            const history = soundwaveData.get(playerId);
+            history.push({
+                level: levelData.level,
+                peak: levelData.peak,
+                timestamp: Date.now()
+            });
+            
+            // Keep only last 100 data points
+            if (history.length > 100) {
+                history.shift();
+            }
+        }
+        
+        function drawSoundwave(ctx, canvas, levelData) {
+            const width = canvas.width;
+            const height = canvas.height;
+            
+            // Clear canvas
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(0, 0, width, height);
+            
+            if (!levelData.active) {
+                // Draw flat line when inactive
+                ctx.strokeStyle = '#FF6B6B';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(0, height / 2);
+                ctx.lineTo(width, height / 2);
+                ctx.stroke();
+                return;
+            }
+            
+            // Draw animated soundwave
+            const time = Date.now() / 1000;
+            const amplitude = (levelData.level / 100) * (height / 4);
+            const frequency = 2 + (levelData.peak / 100) * 3;
+            
+            ctx.strokeStyle = '#4ECDC4';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            
+            for (let x = 0; x < width; x++) {
+                const progress = x / width;
+                const wave1 = Math.sin((progress * frequency + time) * Math.PI * 2) * amplitude;
+                const wave2 = Math.sin((progress * frequency * 1.5 + time * 1.3) * Math.PI * 2) * amplitude * 0.5;
+                const y = height / 2 + wave1 + wave2;
+                
+                if (x === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            
+            ctx.stroke();
+            
+            // Add glow effect
+            ctx.shadowColor = '#4ECDC4';
+            ctx.shadowBlur = 10;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
 
         // Initialize dashboard when page loads
-        document.addEventListener('DOMContentLoaded', initDashboard);
+        document.addEventListener('DOMContentLoaded', () => {
+            initDashboard();
+            startLiveSoundwaves();
+        });
         
         // Cleanup on page unload
         window.addEventListener('beforeunload', () => {
             if (autoRefreshInterval) {
                 clearInterval(autoRefreshInterval);
             }
+            
+            // Stop soundwaves
+            stopLiveSoundwaves();
             
             // Cleanup audio contexts
             audioContexts.forEach((context, playerId) => {

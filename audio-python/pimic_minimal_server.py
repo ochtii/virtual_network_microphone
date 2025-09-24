@@ -574,6 +574,58 @@ class AudioStreamHandler:
         client_data['buffer'] = buffer[chunk_size:]
         
         return chunk
+    
+    def get_audio_levels(self):
+        """Get current audio levels for all active clients"""
+        levels = {}
+        current_time = time.time()
+        
+        for client_ip, client_data in self.audio_clients.items():
+            # Check if client is active (data within last 5 seconds)
+            time_since_last = current_time - client_data['last_data']
+            if time_since_last > 5.0:
+                continue
+            
+            buffer = client_data['buffer']
+            if len(buffer) == 0:
+                levels[client_ip] = {
+                    'level': 0,
+                    'peak': 0,
+                    'active': False,
+                    'last_update': current_time
+                }
+                continue
+            
+            # Calculate audio level from buffer
+            # Take sample from buffer to calculate level
+            sample_size = min(1024, len(buffer))
+            sample = buffer[-sample_size:] if sample_size > 0 else b''
+            
+            if sample:
+                # Simple level calculation (RMS-like)
+                level_sum = sum(abs(b - 128) for b in sample) / len(sample)
+                normalized_level = min(100, (level_sum / 128.0) * 100)
+                
+                # Calculate peak (max value in sample)
+                peak = max(abs(b - 128) for b in sample) / 128.0 * 100
+                
+                levels[client_ip] = {
+                    'level': round(normalized_level, 1),
+                    'peak': round(peak, 1),
+                    'active': True,
+                    'buffer_size': len(buffer),
+                    'last_update': current_time,
+                    'time_since_data': round(time_since_last, 2)
+                }
+            else:
+                levels[client_ip] = {
+                    'level': 0,
+                    'peak': 0,
+                    'active': False,
+                    'last_update': current_time
+                }
+        
+        return levels
 
 
 class StreamServer:
@@ -686,6 +738,8 @@ class HTTPHandler(SimpleHTTPRequestHandler):
             self.serve_health()
         elif self.path == '/api/rtp/streams':
             self.serve_rtp_streams_api()
+        elif self.path == '/api/audio/levels':
+            self.serve_audio_levels_api()
         elif self.path.startswith('/static/'):
             self.serve_static_file()
         elif self.path.startswith('/client/') and self.path.endswith('/stream'):
@@ -1369,6 +1423,24 @@ class HTTPHandler(SimpleHTTPRequestHandler):
             
         except Exception as e:
             logger.error(f"RTP streams API error: {e}")
+            self.send_json_response({'success': False, 'error': str(e)})
+
+    def serve_audio_levels_api(self):
+        """Serve real-time audio levels for all active clients"""
+        try:
+            global global_audio_handler
+            if not global_audio_handler:
+                global_audio_handler = AudioStreamHandler()
+            
+            audio_levels = global_audio_handler.get_audio_levels()
+            self.send_json_response({
+                'success': True,
+                'levels': audio_levels,
+                'timestamp': time.time()
+            })
+            
+        except Exception as e:
+            logger.error(f"Audio levels API error: {e}")
             self.send_json_response({'success': False, 'error': str(e)})
 
     def serve_index(self):
