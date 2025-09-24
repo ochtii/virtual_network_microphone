@@ -568,95 +568,72 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
 
 def kill_port_processes(port):
     """Killt alle Prozesse die den angegebenen Port verwenden"""
+    print(f"🔍 Prüfe Port {port} auf blockierende Prozesse...")
+    
+    killed_any = False
+    
+    # Aggressive Port-Cleanup mit mehreren Methoden
+    methods_tried = []
+    
+    # Methode 1: Direct kill mit sudo lsof (am zuverlässigsten)
     try:
-        print(f"Prüfe Port {port} auf blockierende Prozesse...")
-        
-        killed_any = False
-        
-        # Methode 1: Mit lsof (am zuverlässigsten)
-        try:
-            result = subprocess.run(['sudo', 'lsof', '-ti', f':{port}'], 
-                                  capture_output=True, text=True, timeout=10)
-            if result.returncode == 0 and result.stdout.strip():
-                pids = result.stdout.strip().split('\n')
-                for pid in pids:
-                    if pid.strip().isdigit():
-                        print(f"Stoppe PID {pid} auf Port {port}")
-                        try:
-                            subprocess.run(['sudo', 'kill', '-9', pid], timeout=5)
-                            killed_any = True
-                        except:
-                            pass
-        except FileNotFoundError:
-            pass  # lsof nicht verfügbar
-        
-        # Methode 2: Mit fuser (auch sehr effektiv)
-        try:
-            result = subprocess.run(['sudo', 'fuser', '-k', '9/tcp', f'{port}/tcp'], 
-                                  capture_output=True, text=True, timeout=10)
-            if result.returncode == 0:
-                print(f"Port {port} mit fuser freigeräumt")
+        result = subprocess.run(['sudo', 'lsof', '-ti', f':{port}'], 
+                              capture_output=True, text=True, timeout=5)
+        if result.returncode == 0 and result.stdout.strip():
+            pids = [pid.strip() for pid in result.stdout.strip().split('\n') if pid.strip().isdigit()]
+            for pid in pids:
+                print(f"🔪 KILL PID {pid} auf Port {port}")
+                subprocess.run(['sudo', 'kill', '-9', pid], timeout=3)
                 killed_any = True
-        except FileNotFoundError:
-            pass  # fuser nicht verfügbar
+            methods_tried.append("lsof")
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+    
+    # Methode 2: Brute force mit fuser
+    try:
+        subprocess.run(['sudo', 'fuser', '-k', '-9', f'{port}/tcp'], 
+                      capture_output=True, timeout=5)
+        print(f"🔪 FUSER kill auf Port {port}")
+        killed_any = True
+        methods_tried.append("fuser")
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+    
+    # Methode 3: Netstat + kill
+    try:
+        result = subprocess.run(['sudo', 'netstat', '-tulpn'], 
+                              capture_output=True, text=True, timeout=5)
+        if result.returncode == 0:
+            for line in result.stdout.split('\n'):
+                if f':{port}' in line and 'LISTEN' in line:
+                    parts = line.split()
+                    if len(parts) >= 7 and '/' in parts[6]:
+                        pid = parts[6].split('/')[0]
+                        if pid.isdigit():
+                            print(f"🔪 NETSTAT kill PID {pid} auf Port {port}")
+                            subprocess.run(['sudo', 'kill', '-9', pid], timeout=3)
+                            killed_any = True
+            if killed_any:
+                methods_tried.append("netstat")
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+    
+    # Methode 4: Fallback - kill alles was den Port blockiert
+    try:
+        subprocess.run(['sudo', 'pkill', '-9', '-f', f':{port}'], timeout=3)
+        methods_tried.append("pkill")
+    except:
+        pass
+    
+    if methods_tried:
+        print(f"✅ Port-Cleanup verwendet: {', '.join(methods_tried)}")
+        print(f"⏳ Warte 5 Sekunden für saubere Portfreigabe...")
+        time.sleep(5)
+    else:
+        print(f"ℹ️ Port {port} scheint bereits frei zu sein")
+        time.sleep(1)
         
-        # Methode 3: Mit netstat und kill - erweitert mit sudo
-        try:
-            result = subprocess.run(['sudo', 'netstat', '-tulpn'], 
-                                  capture_output=True, text=True, timeout=10)
-            if result.returncode == 0:
-                for line in result.stdout.split('\n'):
-                    if f':{port}' in line and 'LISTEN' in line:
-                        parts = line.split()
-                        if len(parts) >= 7:
-                            pid_info = parts[6]  # Format: pid/process_name
-                            if '/' in pid_info and pid_info.split('/')[0].isdigit():
-                                pid = pid_info.split('/')[0]
-                                process_name = pid_info.split('/')[1] if '/' in pid_info else 'unknown'
-                                print(f"Stoppe Prozess {process_name} (PID: {pid}) auf Port {port}")
-                                try:
-                                    subprocess.run(['sudo', 'kill', '-9', pid], timeout=5)
-                                    killed_any = True
-                                except:
-                                    pass
-        except FileNotFoundError:
-            pass
-        
-        # Methode 4: Fallback mit ss (modern netstat replacement)
-        try:
-            result = subprocess.run(['sudo', 'ss', '-tulpn'], 
-                                  capture_output=True, text=True, timeout=10)
-            if result.returncode == 0:
-                for line in result.stdout.split('\n'):
-                    if f':{port}' in line and 'LISTEN' in line:
-                        # Suche nach PID in der Zeile
-                        import re
-                        pid_match = re.search(r'pid=(\d+)', line)
-                        if pid_match:
-                            pid = pid_match.group(1)
-                            print(f"Stoppe PID {pid} auf Port {port}")
-                            try:
-                                subprocess.run(['sudo', 'kill', '-9', pid], timeout=5)
-                                killed_any = True
-                            except:
-                                pass
-        except FileNotFoundError:
-            pass
-        
-        if killed_any:
-            # Wenn Prozesse getötet wurden, warte länger
-            print(f"Prozesse auf Port {port} wurden beendet. Warte 5 Sekunden...")
-            time.sleep(5)
-        else:
-            # Kurz warten auch wenn nichts gefunden wurde
-            time.sleep(2)
-            
-        print(f"Port {port} sollte jetzt frei sein")
-        
-    except Exception as e:
-        print(f"Warnung: Fehler beim Freimachen von Port {port}: {e}")
-        # Auch bei Fehlern kurz warten
-        time.sleep(2)
+    print(f"🚀 Port {port} ist jetzt bereit für Server-Start")
 
 def start_server(port=3000, host="0.0.0.0"):
     """Startet den HTTP Server"""

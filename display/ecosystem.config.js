@@ -3,7 +3,7 @@ module.exports = {
     {
       name: 'pimic-display',
       script: 'python3',
-      args: 'http_server.py 3001',
+      args: 'http_server.py',
       cwd: '/home/ochtii/pimic/display',
       autorestart: true,
       watch: false,
