@@ -200,9 +200,6 @@ class PimicAudioClient {
             this.analyser.fftSize = 256;
             source.connect(this.analyser);
             
-            // Start client-side stream server using WebRTC or simple HTTP
-            await this.startClientStreamServer(streamPort, bitrate);
-            
             // Start WebSocket connection to Pi for audio streaming
             await this.startAudioStreamToPi(streamPort, bitrate);
             
