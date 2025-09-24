@@ -905,9 +905,11 @@ class HTTPHandler(SimpleHTTPRequestHandler):
     
     def serve_client_stream(self):
         """Serve audio stream for a specific client"""
+        logger.info(f"serve_client_stream called with path: {self.path}")
         try:
             # Parse client IP from URL: /client/192.168.1.100/stream
             path_parts = self.path.split('/')
+            logger.info(f"Path parts: {path_parts}")
             if len(path_parts) >= 3:
                 client_ip = path_parts[2]
                 
@@ -917,7 +919,10 @@ class HTTPHandler(SimpleHTTPRequestHandler):
                 global global_audio_handler
                 if global_audio_handler is None:
                     global_audio_handler = AudioStreamHandler()
+                    logger.info("Created new AudioStreamHandler")
+                
                 audio_data = global_audio_handler.get_audio_stream(client_ip)
+                logger.info(f"Retrieved {len(audio_data)} bytes for client {client_ip}")
                 
                 if audio_data and len(audio_data) > 0:
                     self.send_response(200)
@@ -930,16 +935,24 @@ class HTTPHandler(SimpleHTTPRequestHandler):
                     self.wfile.write(audio_data)
                     logger.info(f"Served {len(audio_data)} bytes of audio for client {client_ip}")
                 else:
-                    # No data available, send minimal response
-                    self.send_response(204)  # No Content
+                    # No data available, send test response for debugging
+                    test_data = b'test audio data'
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'audio/webm')
                     self.send_header('Access-Control-Allow-Origin', '*')
+                    self.send_header('Cache-Control', 'no-cache')
+                    self.send_header('Content-Length', str(len(test_data)))
                     self.end_headers()
-                    logger.info(f"No audio data available for client {client_ip}")
+                    self.wfile.write(test_data)
+                    logger.info(f"Sent test data for client {client_ip} - no real audio data available")
             else:
+                logger.error(f"Invalid path format: {self.path}")
                 self.send_error(400, "Invalid stream URL")
                 
         except Exception as e:
             logger.error(f"Client stream serving error: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             self.send_error(500)
     
     def serve_client_audio_player(self):
