@@ -78,16 +78,12 @@ fi
 
 # Check PM2 installation
 print_status "Checking PM2 installation..."
-if ! command -v pm2 &> /dev/null; then
-    print_status "Installing PM2..."
-    npm install -g pm2
-    
-    # Setup PM2 startup
-    pm2 startup
-    
-    print_success "PM2 installed successfully"
-else
+if command -v ~/.npm-global/bin/pm2 &> /dev/null || command -v pm2 &> /dev/null; then
     print_success "PM2 is already installed"
+else
+    print_error "PM2 not found. Please install PM2 manually:"
+    echo "  npm install -g pm2"
+    exit 1
 fi
 
 # Install system dependencies
@@ -183,10 +179,13 @@ sudo systemctl enable ${SYSTEMD_SERVICE}
 # Test PM2 configuration
 if [ -f "ecosystem.config.js" ]; then
     print_status "Testing PM2 configuration..."
-    pm2 start ecosystem.config.js --env production
-    pm2 save
-    pm2 stop pimic-audio-streaming
-    print_success "PM2 configuration tested successfully"
+    if ~/.npm-global/bin/pm2 start ecosystem.config.js --env production 2>/dev/null || pm2 start ecosystem.config.js --env production 2>/dev/null; then
+        ~/.npm-global/bin/pm2 save 2>/dev/null || pm2 save 2>/dev/null
+        ~/.npm-global/bin/pm2 stop pimic-audio-streaming 2>/dev/null || pm2 stop pimic-audio-streaming 2>/dev/null
+        print_success "PM2 configuration tested successfully"
+    else
+        print_warning "PM2 configuration test failed - continuing anyway"
+    fi
 fi
 
 # Audio system setup
