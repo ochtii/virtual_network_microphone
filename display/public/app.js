@@ -98,7 +98,7 @@ function startLiveUpdates() {
         } else if (currentView === 'network') {
             fetchNetworkMetrics();
         }
-    }, 300); // 300ms updates
+    }, 2000); // 2000ms updates (2 seconds)
 }
 
 function stopLiveUpdates() {
@@ -430,6 +430,9 @@ function fetchSystemMetrics() {
     fetch('/api/system')
         .then(r => r.json())
         .then(data => {
+            // Reset error counter on successful fetch
+            window.fetchErrorCount = 0;
+            
             document.getElementById('system').innerHTML = `
                 <div class="metric-card">
                     <h3>System Metriken <span class="live-indicator">🔴 LIVE</span></h3>
@@ -513,7 +516,18 @@ function fetchSystemMetrics() {
             }
         })
         .catch(err => {
+            console.error('System metrics fetch error:', err);
             document.getElementById('system').innerHTML = '<div class="error">Fehler beim Laden der System-Metriken</div>';
+            // Stoppe Live-Updates bei wiederholten Fehlern, um Loop zu vermeiden
+            if (window.fetchErrorCount > 3) {
+                stopLiveUpdates();
+                setTimeout(() => {
+                    window.fetchErrorCount = 0;
+                    startLiveUpdates();
+                }, 10000); // Restart nach 10 Sekunden
+            } else {
+                window.fetchErrorCount = (window.fetchErrorCount || 0) + 1;
+            }
         });
 }
 
