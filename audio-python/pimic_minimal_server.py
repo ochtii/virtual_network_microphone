@@ -43,7 +43,6 @@ active_streams: Dict[str, dict] = {}
 connected_clients: Set[str] = set()  # Changed from websocket objects to client IDs
 audio_levels: Dict[str, dict] = {}
 server_running = True
-audio_stream_handler = None  # Will be initialized in main
 
 # Logging setup
 logging.basicConfig(
@@ -221,9 +220,21 @@ class SimpleWebSocketHandler:
 class AudioStreamHandler:
     """Handle audio streaming via WebSocket"""
     
+    _instance = None
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance.audio_clients = {}  # client_ip -> audio_buffer
+            cls._instance.stream_buffers = {}  # stream_id -> audio_buffer
+        return cls._instance
+    
     def __init__(self):
-        self.audio_clients = {}  # client_ip -> audio_buffer
-        self.stream_buffers = {}  # stream_id -> audio_buffer
+        # Only initialize once
+        if not hasattr(self, 'initialized'):
+            self.audio_clients = {}  # client_ip -> audio_buffer
+            self.stream_buffers = {}  # stream_id -> audio_buffer
+            self.initialized = True
         
     def handle_audio_websocket(self, request_handler):
         """Handle WebSocket connection for audio streaming"""
@@ -459,7 +470,7 @@ class HTTPHandler(SimpleHTTPRequestHandler):
         try:
             if self.websocket_handler.handle_websocket_handshake(self):
                 # Hand over to audio stream handler
-                audio_stream_handler.handle_audio_websocket(self)
+                AudioStreamHandler().handle_audio_websocket(self)
         except Exception as e:
             logger.error(f"Audio WebSocket upgrade failed: {e}")
             self.send_error(500)
@@ -475,7 +486,7 @@ class HTTPHandler(SimpleHTTPRequestHandler):
                 logger.info(f"Serving stream for client {client_ip}")
                 
                 # Get audio data from WebSocket buffer
-                audio_data = audio_stream_handler.get_audio_stream(client_ip)
+                audio_data = AudioStreamHandler().get_audio_stream(client_ip)
                 
                 if audio_data:
                     self.send_response(200)
@@ -973,10 +984,6 @@ if __name__ == "__main__":
         
         print(f"🐍 Starting with Python {sys.version.split()[0]}")
         print("✅ All dependencies available in standard library")
-        
-        # Initialize global handlers
-        global audio_stream_handler
-        audio_stream_handler = AudioStreamHandler()
         
         server = PimicAudioServer()
         server.start()
