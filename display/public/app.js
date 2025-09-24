@@ -1,4 +1,40 @@
-// Global variables
+// Live Clock Functionality
+function updateClock() {
+    const now = new Date();
+    
+    // Format time as HH:MM:SS
+    const timeString = now.toLocaleTimeString('de-DE', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    });
+    
+    // Format date
+    const dateString = now.toLocaleDateString('de-DE', {
+        weekday: 'short',
+        day: '2-digit',
+        month: '2-digit'
+    });
+    
+    // Update clock elements
+    const clockTime = document.getElementById('clockTime');
+    const clockDate = document.getElementById('clockDate');
+    
+    if (clockTime) clockTime.textContent = timeString;
+    if (clockDate) clockDate.textContent = dateString;
+}
+
+// Initialize clock
+function initializeClock() {
+    // Update immediately
+    updateClock();
+    
+    // Update every second
+    setInterval(updateClock, 1000);
+}
+
+// Global state management
 let updateInterval = null;
 let currentView = 'system';
 let views = ['system', 'network', 'settings', 'placeholder'];
@@ -38,6 +74,9 @@ function setupNavigation() {
     document.getElementById('navRight').addEventListener('click', () => {
         navigateToView('next');
     });
+    
+    // Initialize live clock
+    initializeClock();
     
     // Touch-friendly settings handlers
     setupTouchSettings();

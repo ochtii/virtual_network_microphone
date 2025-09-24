@@ -86,6 +86,209 @@ body.acid-theme::after {
     100% { transform: translate(-50%, -50%) rotate(360deg) scale(1); }
 }
 
+/* ===== MODERN NAVIGATION HEADER ===== */
+.modern-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 0;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    border-bottom: 3px solid rgba(255,255,255,0.1);
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    max-width: 100%;
+    gap: 15px;
+}
+
+/* Brand Section */
+.header-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex-shrink: 0;
+}
+
+.brand-icon {
+    font-size: 24px;
+    line-height: 1;
+}
+
+.brand-text {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+/* Live Clock */
+.live-clock {
+    text-align: right;
+    min-width: 0;
+    flex-shrink: 0;
+}
+
+.clock-time {
+    font-family: 'Consolas', 'Monaco', 'Lucida Console', monospace;
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+.clock-date {
+    font-size: 12px;
+    opacity: 0.8;
+    margin-top: 2px;
+    line-height: 1;
+}
+
+/* Modern Navigation Menu Overrides */
+.modern-header .horizontal-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    justify-content: center;
+    min-width: 0;
+    width: auto;
+    max-width: none;
+}
+
+.modern-header .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.2);
+    min-width: 60px;
+    text-align: center;
+    font-size: 11px !important;
+    font-weight: 500;
+    max-height: none;
+    line-height: 1;
+    opacity: 1;
+}
+
+.modern-header .nav-item:hover {
+    background: rgba(255,255,255,0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.modern-header .nav-item.current {
+    background: rgba(255,255,255,0.3);
+    border-color: rgba(255,255,255,0.4);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    color: white;
+}
+
+.modern-header .nav-item.other,
+.modern-header .nav-item.adjacent {
+    background: rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.9);
+    border-color: rgba(255,255,255,0.2);
+    opacity: 1;
+}
+
+.nav-icon {
+    font-size: 18px;
+    line-height: 1;
+    margin-bottom: 2px;
+}
+
+.nav-text {
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.modern-header .nav-arrow-btn {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.25);
+    color: white;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+}
+
+.modern-header .nav-arrow-btn:hover {
+    background: rgba(255,255,255,0.25);
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.modern-header .nav-arrow-btn:disabled {
+    background: rgba(255,255,255,0.05);
+    cursor: not-allowed;
+    opacity: 0.3;
+    transform: none;
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+    .header-content {
+        padding: 10px 15px;
+        gap: 10px;
+    }
+    
+    .brand-text {
+        font-size: 16px;
+    }
+    
+    .brand-icon {
+        font-size: 20px;
+    }
+    
+    .clock-time {
+        font-size: 16px;
+    }
+    
+    .clock-date {
+        font-size: 10px;
+    }
+    
+    .modern-header .nav-item {
+        min-width: 50px;
+        padding: 6px 8px;
+    }
+    
+    .nav-icon {
+        font-size: 16px;
+    }
+    
+    .nav-text {
+        font-size: 9px;
+    }
+    
+    .modern-header .nav-arrow-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 16px;
+    }
+}
+
 /* Compact Navigation Bar */
 .nav-bar {
     position: fixed;
