@@ -72,7 +72,15 @@ class RTPStreamer:
         """Start RTP stream for a client"""
         try:
             if client_ip in self.active_rtp_streams:
-                return self.active_rtp_streams[client_ip]
+                # Nur serialisierbare Felder zurückgeben
+                stream = self.active_rtp_streams[client_ip]
+                return {
+                    'success': True,
+                    'rtp_url': f"rtp://0.0.0.0:{stream['port']}",
+                    'rtcp_url': f"rtp://0.0.0.0:{stream['rtcp_port']}",
+                    'payload_type': stream['payload_type'],
+                    'client_ip': client_ip
+                }
             
             # Find available port
             rtp_port = self.rtp_base_port
