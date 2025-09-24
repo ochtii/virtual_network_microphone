@@ -829,33 +829,15 @@ class HTTPHandler(SimpleHTTPRequestHandler):
                 self.add_cors_headers()
                 self.end_headers()
         elif self.path.startswith('/client/') and self.path.endswith('/stream'):
-            # Check if client stream is available
+            # Always respond 200 for client stream HEAD requests (matches GET behavior)
             path_parts = self.path.split('/')
             if len(path_parts) >= 3:
                 client_ip = path_parts[2]
-                # Initialize global audio handler if not exists
-                global global_audio_handler
-                if global_audio_handler is None:
-                    global_audio_handler = AudioStreamHandler()
-                
-                # Check if we have audio data for this client
-                try:
-                    has_data = global_audio_handler.has_audio_data(client_ip)
-                    logger.info(f"HEAD request for {client_ip}: has_data={has_data}")
-                    if has_data:
-                        self.send_response(200)
-                        self.send_header('Content-type', 'audio/webm')
-                        self.add_cors_headers()
-                        self.end_headers()
-                    else:
-                        self.send_response(404)
-                        self.add_cors_headers()
-                        self.end_headers()
-                except Exception as e:
-                    logger.error(f"Error checking audio data for {client_ip}: {e}")
-                    self.send_response(500)
-                    self.add_cors_headers()
-                    self.end_headers()
+                logger.info(f"HEAD request for client stream: {client_ip}")
+                self.send_response(200)
+                self.send_header('Content-type', 'audio/webm')
+                self.add_cors_headers()
+                self.end_headers()
             else:
                 self.send_response(400)
                 self.add_cors_headers()

@@ -1135,7 +1135,9 @@
         // RTP Stream Functions
         async function startRTPStream(clientIP, playerId) {
             try {
-                const response = await fetch(`${SERVER_BASE}/api/rtp/start`, {
+                // Always use HTTPS server for RTP operations since RTP streamer runs there
+                const rtpBaseUrl = 'https://192.168.188.90:6969';
+                const response = await fetch(`${rtpBaseUrl}/api/rtp/start`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ client_ip: clientIP })
@@ -1161,7 +1163,9 @@
         
         async function stopRTPStream(clientIP, playerId) {
             try {
-                const response = await fetch(`${SERVER_BASE}/api/rtp/stop`, {
+                // Always use HTTPS server for RTP operations since RTP streamer runs there
+                const rtpBaseUrl = 'https://192.168.188.90:6969';
+                const response = await fetch(`${rtpBaseUrl}/api/rtp/stop`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ client_ip: clientIP })
