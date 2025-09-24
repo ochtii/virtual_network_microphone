@@ -1005,16 +1005,39 @@ class HTTPHandler(SimpleHTTPRequestHandler):
                 content_type = 'text/css'
             elif file_path.endswith('.js'):
                 content_type = 'application/javascript'
+            elif file_path.endswith('.html'):
+                content_type = 'text/html'
+            elif file_path.endswith('.json'):
+                content_type = 'application/json'
+            elif file_path.endswith('.png'):
+                content_type = 'image/png'
+            elif file_path.endswith('.jpg') or file_path.endswith('.jpeg'):
+                content_type = 'image/jpeg'
+            elif file_path.endswith('.svg'):
+                content_type = 'image/svg+xml'
             else:
                 content_type = 'text/plain'
             
-            with open(static_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-            
-            self.send_response(200)
-            self.send_header('Content-type', content_type)
-            self.end_headers()
-            self.wfile.write(content.encode('utf-8'))
+            # Handle binary files
+            if file_path.endswith(('.png', '.jpg', '.jpeg', '.gif', '.ico')):
+                with open(static_path, 'rb') as f:
+                    content = f.read()
+                
+                self.send_response(200)
+                self.send_header('Content-type', content_type)
+                self.send_header('Content-Length', str(len(content)))
+                self.end_headers()
+                self.wfile.write(content)
+            else:
+                # Handle text files
+                with open(static_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                
+                self.send_response(200)
+                self.send_header('Content-type', content_type)
+                self.send_header('Content-Length', str(len(content.encode('utf-8'))))
+                self.end_headers()
+                self.wfile.write(content.encode('utf-8'))
             
         except Exception as e:
             logger.error(f"Error serving static file {file_path}: {e}")
