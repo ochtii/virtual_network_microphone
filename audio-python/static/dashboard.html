@@ -393,7 +393,8 @@
                 
                 for (const stream of data.streams) {
                     try {
-                        const streamUrl = `${serverBase}/client/${stream.client_ip}/stream`;
+                        // Always validate against HTTPS server (port 6969) where streams actually exist
+                        const streamUrl = `https://${window.location.hostname}:6969/client/${stream.client_ip}/stream`;
                         const response = await fetch(streamUrl, { method: 'HEAD' });
                         if (response.ok) {
                             validatedClients.push(stream.client_ip);
@@ -430,29 +431,20 @@
         async function findActiveClients(serverBase) {
             const knownClients = ['192.168.188.28', '192.168.188.49']; // Add known clients
             const activeClients = [];
-            const baseUrl = serverBase || SERVER_BASE;
             
             for (const clientIP of knownClients) {
                 try {
-                    const response = await fetch(`${baseUrl}/client/${clientIP}/stream`, {
+                    // Always check HTTPS server for streams (port 6969)
+                    const streamBaseUrl = `https://${window.location.hostname}:6969`;
+                    const response = await fetch(`${streamBaseUrl}/client/${clientIP}/stream`, {
                         method: 'HEAD'
                     });
                     if (response.ok) {
                         activeClients.push(clientIP);
                     }
                 } catch (error) {
-                    // Try fallback protocol
-                    const fallbackUrl = baseUrl.includes('https') ? HTTP_FALLBACK : HTTPS_FALLBACK;
-                    try {
-                        const fallbackResponse = await fetch(`${fallbackUrl}/client/${clientIP}/stream`, {
-                            method: 'HEAD'
-                        });
-                        if (fallbackResponse.ok) {
-                            activeClients.push(clientIP);
-                        }
-                    } catch (fallbackError) {
-                        // Client not active on either protocol
-                    }
+                    // Client not active or network error
+                    console.log(`Client ${clientIP} not available:`, error.message);
                 }
             }
             
@@ -535,8 +527,9 @@
                 statusElement.textContent = 'Lädt...';
                 infoElement.textContent = 'Stream wird geladen...';
                 
-                const baseUrl = serverBase || SERVER_BASE;
-                let streamUrl = `${baseUrl}/client/${clientIP}/stream?t=${Date.now()}`;
+                // Always use HTTPS server for streams (port 6969), not the dashboard server
+                const streamBaseUrl = `https://${window.location.hostname}:6969`;
+                let streamUrl = `${streamBaseUrl}/client/${clientIP}/stream?t=${Date.now()}`;
                 source.src = streamUrl;
                 audio.load();
                 
