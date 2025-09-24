@@ -1202,10 +1202,10 @@ class PimicAudioServer:
             print(f"⚠️  HTTP only: Microphone access requires HTTPS in modern browsers")
             print(f"💡 For HTTPS, generate certificates or use localhost")
         
-        # Start additional HTTP server on port 8080 for dashboard access
+        # Start additional HTTP server on port 8081 for dashboard access
         def start_http_server():
             try:
-                http_port = 8080
+                http_port = 8081
                 http_server = ThreadingHTTPServer(("0.0.0.0", http_port), HTTPHandler)
                 logger.info(f"📡 Additional HTTP server started on port {http_port}")
                 print(f"🌍 HTTP Dashboard: http://{self.get_server_ip()}:{http_port}/static/dashboard.html")

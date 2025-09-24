@@ -300,7 +300,7 @@
         // Auto-detect protocol and port
         const isHTTPS = window.location.protocol === 'https:';
         const SERVER_BASE = isHTTPS ? 'https://192.168.188.90:6969' : 'https://192.168.188.90:6969';
-        const HTTP_FALLBACK = 'http://192.168.188.90:8080';
+        const HTTP_FALLBACK = 'http://192.168.188.90:8081';
         
         // Initialize dashboard
         async function initDashboard() {
@@ -541,7 +541,7 @@
                     console.error('Audio error for', clientIP, ':', e);
                     
                     // Try HTTP fallback if HTTPS failed
-                    if (baseUrl.includes('https') && !source.src.includes('8080')) {
+                    if (baseUrl.includes('https') && !source.src.includes('8081')) {
                         console.log('Trying HTTP fallback for', clientIP);
                         statusElement.textContent = 'Fallback...';
                         infoElement.textContent = 'Versuche HTTP Fallback...';
