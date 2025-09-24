@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Stream Test</title>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <h1>🎵 Audio Stream Test</h1>
+    <p>Client: 192.168.188.28</p>
+    
+    <button onclick="testStream()">▶️ Stream testen</button>
+    
+    <div id="result"></div>
+    
+    <audio id="audio" controls style="width: 100%; margin: 20px 0;">
+        <source id="audioSource" type="audio/webm">
+    </audio>
+    
+    <script>
+        function testStream() {
+            const audio = document.getElementById('audio');
+            const source = document.getElementById('audioSource');
+            const result = document.getElementById('result');
+            
+            result.innerHTML = 'Stream wird geladen...';
+            
+            const streamUrl = 'https://192.168.188.90:6969/client/192.168.188.28/stream?t=' + Date.now();
+            source.src = streamUrl;
+            audio.load();
+            
+            audio.addEventListener('loadstart', () => result.innerHTML = 'Stream lädt...');
+            audio.addEventListener('canplay', () => result.innerHTML = 'Stream bereit!');
+            audio.addEventListener('error', (e) => result.innerHTML = 'Fehler: ' + e.type);
+            
+            setTimeout(() => {
+                audio.play().catch(err => {
+                    result.innerHTML = 'Klicke Play um zu starten (Autoplay blockiert)';
+                });
+            }, 1000);
+        }
+        
+        // Test server connection
+        fetch('https://192.168.188.90:6969/health')
+            .then(r => r.json())
+            .then(data => console.log('Server:', data))
+            .catch(e => console.error('Server error:', e));
+    </script>
+</body>
+</html>
